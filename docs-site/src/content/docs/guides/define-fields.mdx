@@ -1,0 +1,104 @@
+---
+title: Define fields
+description: Declare the filterable fields of a model with searchChips(), or let the package discover them.
+sidebar:
+  order: 1
+---
+
+A model has two ways to say which fields are filterable. You declare them, or the package discovers them. Declare them for any model that users search.
+
+## Declare fields
+
+Add the `HasSearchChips` trait and a `searchChips(ChipSchema $chips)` method. The model then exposes exactly the fields you list. No other field is reachable. The package runs no table query for a declared model.
+
+```php
+use Illuminate\Database\Eloquent\Model;
+use Meirdick\SearchChips\HasSearchChips;
+use Meirdick\SearchChips\Schema\ChipSchema;
+
+class Post extends Model
+{
+    use HasSearchChips;
+
+    public function searchChips(ChipSchema $chips): void
+    {
+        $chips->text('title')->searchable();
+        $chips->enum('type', PostType::class)->synonyms(['movie' => 'video', 'show' => 'podcast']);
+        $chips->number('views')->aliases('plays')->sortable();
+        $chips->boolean('is_featured')->label('Featured')->aliases('featured');
+        $chips->datetime('published_at')->label('Published')->sortable();
+        $chips->relation('author', 'name');
+    }
+}
+```
+
+## Field types
+
+| Method | Kind | Notes |
+| --- | --- | --- |
+| `text($column)` | `text` | Free text. |
+| `number($column)` | `number` | Integer or decimal. |
+| `date($column)` | `date` | A date. |
+| `datetime($column)` | `datetime` | A date and time. |
+| `boolean($column)` | `boolean` | Yes or no. |
+| `enum($column, $values)` | `enum` | `$values` is a backed enum class, a list of values, or a `value => label` map. |
+| `relation($relation, $column = 'name')` | `text` | Filters by a column of a related model. The field name is `relation.column`. The relation word is an alias. The related column is also part of the keyword search. Use `->searchable(false)` to turn that off. |
+
+A `relation()` field needs a relation method with that name on the model. If the method does not exist, the package drops the field.
+
+## Field options
+
+Each method returns a `ChipField`. Chain these options on it.
+
+| Option | Use |
+| --- | --- |
+| `label(string $label)` | The name that chips and the panel show. The default is the column name in words. |
+| `aliases(string ...$aliases)` | Words in a sentence that mean this field, for example `->aliases('plays', 'view count')`. |
+| `values(string\|array $values)` | The allowed values. `enum()` calls this for you. |
+| `synonyms(array $synonyms)` | Other words for a value, as `word => value`. The package also reads the plural of each word. |
+| `unit(string $unit, ?float $scale = null)` | A unit and a scale. `->unit('percent', scale: 0.01)` turns `8%` into `0.08`. |
+| `searchable(bool $searchable = true)` | Keyword text searches this text field. |
+| `sortable(bool $sortable = true)` | Words such as `latest` or `most viewed` can sort by this field. |
+| `onlyWhen(array $conditions)` | A filter on this field only selects rows that meet the conditions. See [Security](/guides/security/). |
+
+## Discovery
+
+If the model has no `searchChips()` method, the package discovers its fields.
+
+- It reads the kind of each column from the model casts. For a column with no cast, it uses the column type.
+- It skips hidden attributes, columns that end in `_id`, the soft-delete column, columns with a cast to `array`, `json` or `encrypted`, and columns whose name matches `password`, `passwd`, `token`, `secret`, `remember`, `api_key`, `_hash`, `salt`, `private` or `internal`.
+- It adds a `relation.name` field for each public relation method that has a return type. The name column is the first of `name`, `title`, `label`, `username` and `slug` that the related table has.
+- Date fields are sortable. Text fields named `title`, `name`, `body`, `content`, `description`, `summary`, `subject`, `caption` or `text` are searchable. If none matches, the first text column is searchable.
+
+Discovery needs a database connection. Add `#[Filterable]` and `#[Unfilterable]` attributes to the model class to change what it finds.
+
+```php
+use Meirdick\SearchChips\Attributes\Filterable;
+use Meirdick\SearchChips\Attributes\Unfilterable;
+
+#[Filterable('views', aliases: ['view count', 'plays'], orderable: true)]
+#[Filterable('engagement_rate', label: 'Engagement', unit: 'percent', scale: 0.01)]
+#[Unfilterable('internal_note')]
+class Post extends Model {}
+```
+
+`#[Filterable]` takes `field`, `label`, `unit`, `scale`, `aliases`, `values`, `searchable` and `orderable`. `#[Unfilterable]` on the class with no argument keeps the whole model out of discovery. On a relation method, it hides that relation. The attributes apply to discovery only. They do not change a model that declares `searchChips()`.
+
+Discovery can also sample values. See `discovery.sample_values` in [Configuration](/reference/configuration/) and [Security](/guides/security/).
+
+For a model that users search, declare the fields. Discovery can expose a column that you did not intend.
+
+## Print a starting point
+
+The `search-chips:schema` command with `--stub` prints a `searchChips()` method from the discovered schema. Paste it into the model and remove what you do not need.
+
+```bash
+php artisan search-chips:schema posts --stub
+```
+
+The model must be registered first. See [Register models](/guides/register-models/). Without `--stub`, the command prints a table of the fields. With `--json`, it prints JSON.
+
+## Next steps
+
+- Register the model in [Register models](/guides/register-models/).
+- See the operators for each kind in [Operators](/reference/operators/).

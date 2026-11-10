@@ -1,0 +1,47 @@
+---
+title: Auto Search Chips
+description: "Natural-language search for Eloquent models. The user types a sentence. The package turns it into filter chips and runs the query."
+mode: custom
+---
+
+import { LinkButton } from "../../components/ui/link-button";
+
+<div class="mx-auto max-w-4xl px-6 py-16">
+
+<p class="text-sm font-medium text-muted-foreground">A search package for Laravel</p>
+
+<h1 class="mt-3 text-4xl font-semibold tracking-tight text-balance">Search that the user can read and edit.</h1>
+
+<p class="mt-4 max-w-3xl text-lg text-muted-foreground text-pretty">The user types a plain sentence. The package turns it into typed filters on an Eloquent model. Each filter shows as a chip that the user can remove. The list updates at once.</p>
+
+<div class="mt-8 flex flex-wrap gap-3">
+  <LinkButton href="/quickstart/" variant="primary">Quickstart</LinkButton>
+  <LinkButton href="/overview/" variant="secondary">Overview</LinkButton>
+  <LinkButton href="https://github.com/meirdick/auto-search-chips" variant="minimal">GitHub</LinkButton>
+</div>
+
+<pre class="mt-10 overflow-x-auto rounded-lg border border-border bg-muted/40 p-4 text-sm"><code>composer require meirdick/auto-search-chips</code></pre>
+
+<h2 class="mt-14 text-2xl font-semibold tracking-tight">One sentence in, typed filters out</h2>
+
+<p class="mt-2 text-muted-foreground">The user types the sentence below. The package shows three chips under the box: <code>Type is Video</code>, <code>Author contains Ada</code> and <code>Views greater than 10,000</code>. You can run the same search from PHP.</p>
+
+```php
+Post::autoSearch('videos by Ada above 10k views')->paginate();
+```
+
+<div class="mt-14 grid gap-4 sm:grid-cols-3">
+  <Card title="Works with no keys" href="/concepts/engines/">
+    A rules engine reads the sentence with no network and no API key.
+  </Card>
+  <Card title="Optional AI" href="/guides/ai-engines/">
+    An AI engine adds chips for words the rules did not explain. The AI never writes SQL.
+  </Card>
+  <Card title="Five front ends" href="/overview/#front-ends">
+    Livewire, Blade with Alpine, and Inertia with React, Vue or Svelte.
+  </Card>
+</div>
+
+<p class="mt-14 text-sm text-muted-foreground">Version 0.1, not released yet. The API can change before 1.0. Needs PHP 8.3 and Laravel 12 or 13. MIT license.</p>
+
+</div>

@@ -1,0 +1,97 @@
+name: tests
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  php:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.4', '8.5']
+        laravel: ['12.*', '13.*']
+        include:
+          - laravel: '12.*'
+            testbench: '10.*'
+          - laravel: '13.*'
+            testbench: '11.*'
+    name: PHP ${{ matrix.php }} / Laravel ${{ matrix.laravel }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo_sqlite, mbstring
+          coverage: none
+      - run: composer require "illuminate/contracts:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
+      - run: composer update --prefer-dist --no-interaction
+      - run: vendor/bin/pest --compact
+
+  scout:
+    runs-on: ubuntu-latest
+    name: Scout engines (collection, database, Meilisearch, Typesense)
+    services:
+      meilisearch:
+        image: getmeili/meilisearch:v1.56
+        env:
+          MEILI_MASTER_KEY: ci-only-master-key
+          MEILI_NO_ANALYTICS: 'true'
+        ports:
+          - 7700:7700
+      typesense:
+        image: typesense/typesense:30.2
+        env:
+          TYPESENSE_API_KEY: ci-only-api-key
+          TYPESENSE_DATA_DIR: /tmp
+        ports:
+          - 8108:8108
+    env:
+      MEILISEARCH_HOST: http://127.0.0.1:7700
+      MEILISEARCH_KEY: ci-only-master-key
+      TYPESENSE_HOST: 127.0.0.1
+      TYPESENSE_API_KEY: ci-only-api-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite, mbstring
+          coverage: none
+      - run: composer update --prefer-dist --no-interaction
+      - name: Wait for Meilisearch and Typesense
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:7700/health && curl -sf http://127.0.0.1:8108/health && exit 0
+            sleep 2
+          done
+          exit 1
+      # --fail-on-skipped: an engine test that cannot reach its server fails this job.
+      - run: vendor/bin/pest --compact --fail-on-skipped tests/Feature/ScoutEnginesTest.php tests/Feature/IntegrationsTest.php
+
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - run: composer update --prefer-dist --no-interaction
+      - run: vendor/bin/pint --test
+      - run: vendor/bin/phpstan analyse --memory-limit=1G
+
+  js:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - name: dist/search-chips.js is up to date
+        run: npm run build && git diff --exit-code dist/

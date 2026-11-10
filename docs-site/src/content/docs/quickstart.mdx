@@ -1,0 +1,160 @@
+---
+title: Quickstart
+description: Install the package, register a model, add the Livewire component, and run your first search.
+---
+
+This page uses Livewire. For another stack, see [Blade and Alpine](/frontend/blade-alpine/), [React](/frontend/react/), [Vue](/frontend/vue/) or [Svelte](/frontend/svelte/).
+
+## Before you start
+
+You need:
+
+- PHP 8.3 or later.
+- A Laravel 12 or 13 app.
+- Livewire 3 or 4. The package does not install it. Add it with `composer require livewire/livewire` if your app does not have it.
+- Tailwind 4 in `resources/css/app.css`.
+- An Eloquent model. This page uses `Post`, with the columns `title`, `type`, `views`, `is_featured` and `published_at`, and an `author()` relation to a model that has a `name` column.
+
+You need no API key. The rules engine works with no network.
+
+## 1. Install
+
+<Steps>
+  <Step title="Install the package">
+    ```bash
+    composer require meirdick/auto-search-chips
+    ```
+  </Step>
+  <Step title="Run the installer">
+    ```bash
+    php artisan search-chips:install --stack=livewire
+    ```
+
+    The installer publishes `config/search-chips.php`. For Livewire and Blade, it adds one `@source` line to `resources/css/app.css`. Tailwind 4 does not scan `vendor/`, so without this line the views have no styles. If the file has no Tailwind entry, the installer prints the line for you to add. Without `--stack`, the installer detects your stack.
+  </Step>
+</Steps>
+
+## 2. Say what is filterable
+
+Add the `HasSearchChips` trait and a `searchChips()` method to the model. Only these fields can be searched.
+
+```php
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Meirdick\SearchChips\HasSearchChips;
+use Meirdick\SearchChips\Schema\ChipSchema;
+
+class Post extends Model
+{
+    use HasSearchChips;
+
+    public function searchChips(ChipSchema $chips): void
+    {
+        $chips->text('title')->searchable();
+        $chips->enum('type', ['video' => 'Video', 'article' => 'Article', 'podcast' => 'Podcast'])
+            ->synonyms(['movie' => 'video', 'show' => 'podcast']);
+        $chips->number('views')->aliases('plays')->sortable();
+        $chips->boolean('is_featured')->label('Featured')->aliases('featured');
+        $chips->datetime('published_at')->label('Published')->sortable();
+        $chips->relation('author', 'name');
+    }
+
+    public function author(): BelongsTo
+    {
+        return $this->belongsTo(Author::class);
+    }
+}
+```
+
+The `relation()` field needs the `author()` method with a return type. Without it, the package drops the field and gives no message.
+
+If the model has no `searchChips()` method, the package reads the fields from the table and the casts. Use that for a prototype only. See [Define fields](/guides/define-fields/).
+
+## 3. Register an alias
+
+The component and the routes accept an alias. They never accept a class name. Register the model in `AppServiceProvider::boot()`.
+
+```php
+use Meirdick\SearchChips\Facades\SearchChips;
+
+SearchChips::register(Post::class, 'posts');
+```
+
+## 4. Add the component
+
+Put the search box on a page. The Livewire list component below listens for the `search-chips-updated` event and runs the query.
+
+```blade
+<livewire:search-chips for="posts" />
+```
+
+```php
+use Livewire\Attributes\On;
+use Livewire\Component;
+use Meirdick\SearchChips\Facades\SearchChips;
+
+class PostList extends Component
+{
+    public array $filters = [];
+
+    public string $leftover = '';
+
+    public ?array $sort = null;
+
+    #[On('search-chips-updated')]
+    public function filter(array $filters, string $leftover, ?array $sort): void
+    {
+        [$this->filters, $this->leftover, $this->sort] = [$filters, $leftover, $sort];
+    }
+
+    public function render()
+    {
+        return view('livewire.post-list', [
+            'posts' => SearchChips::for('posts')
+                ->applyChips($this->filters, $this->leftover, $this->sort)
+                ->paginate(),
+        ]);
+    }
+}
+```
+
+Make the view `resources/views/livewire/post-list.blade.php`. It shows the rows:
+
+```blade
+<div>
+    @foreach ($posts as $post)
+        <p>{{ $post->title }}</p>
+    @endforeach
+
+    {{ $posts->links() }}
+</div>
+```
+
+Then put both tags on a page that a route shows:
+
+```blade
+<livewire:search-chips for="posts" />
+<livewire:post-list />
+```
+
+The package routes need a signed-in user by default. See [Security](/guides/security/).
+
+Add `panel` to the tag to show the filter panel: `<livewire:search-chips for="posts" panel />`.
+
+## 5. Run your first search
+
+Type `videos by Ada above 10k views` in the box. Three chips show under it: `Type is Video`, `Author contains Ada` and `Views greater than 10,000`. The list shows the videos with an author named Ada and more than 10,000 views. Select the cross on a chip to remove it.
+
+You can also check a sentence in the terminal:
+
+```bash
+php artisan search-chips:parse posts videos by Ada above 10k views
+```
+
+The command prints the engine, each chip, and any keyword text.
+
+## Next steps
+
+- Learn the parts in [How it works](/concepts/how-it-works/).
+- Add an AI engine in [AI engines](/guides/ai-engines/).
+- Lock down the routes in [Security](/guides/security/).

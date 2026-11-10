@@ -1,0 +1,99 @@
+---
+title: Livewire
+description: The livewire search-chips component. Install, props, the search-chips-updated event, and the filter panel.
+sidebar:
+  order: 1
+---
+
+The Livewire component renders the search box, the chips and an optional filter panel. It does not use the JSON routes.
+
+## Install
+
+```bash
+composer require meirdick/auto-search-chips
+php artisan search-chips:install --stack=livewire
+```
+
+The package supports Livewire 3 and 4. The local test runs use Livewire 4. The installer has a unit test only. It has not run in a fresh Livewire starter kit. See [Limits](/limits/).
+
+## Tailwind
+
+Tailwind 4 does not scan `vendor/`. The installer adds this line to `resources/css/app.css` after the last `@import` or `@source` line:
+
+```css
+@source '../../vendor/meirdick/auto-search-chips/resources/views/**/*.blade.php';
+```
+
+If `resources/css/app.css` has no Tailwind entry, the installer prints the line. Add it to your Tailwind CSS file yourself.
+
+## Use it
+
+```blade
+<livewire:search-chips for="posts" />
+<livewire:search-chips for="posts" panel />
+```
+
+| Prop | Default | Meaning |
+| --- | --- | --- |
+| `for` | required | The registered alias. |
+| `placeholder` | `Search…` | The placeholder of the box. |
+| `debounce` | `300` | Milliseconds to wait after the last keystroke. |
+| `panel` | `false` | Show the filter panel under the box. |
+
+The component stores the typed text in the `q` query string parameter. If the page loads with `q`, the component parses it on mount.
+
+The component checks the alias and the authorization on mount and on every action. An unregistered alias fails to mount.
+
+## The event
+
+The component dispatches `search-chips-updated` when the chip set changes. The event carries named values.
+
+| Value | Type |
+| --- | --- |
+| `alias` | `string` |
+| `filters` | `array` of chips |
+| `leftover` | `string` |
+| `sort` | `?array` |
+| `count` | `?int` |
+| `engine` | `?string` |
+
+Listen for it in the component that shows the results, and run the query with `applyChips()`.
+
+```php
+use Livewire\Attributes\On;
+
+#[On('search-chips-updated')]
+public function filter(array $filters, string $leftover, ?array $sort): void
+{
+    [$this->filters, $this->leftover, $this->sort] = [$filters, $leftover, $sort];
+}
+
+public function render()
+{
+    return view('livewire.posts', [
+        'posts' => SearchChips::for('posts')->applyChips($this->filters, $this->leftover, $this->sort)->paginate(),
+    ]);
+}
+```
+
+## Two-phase parse
+
+When the user types, the component parses with the rules engine at once. If an AI engine is available, the browser then calls `refine`. The component ignores that reading when the query changed or the user edited a chip. See [How it works](/concepts/how-it-works/).
+
+## Filter panel
+
+With `panel`, the component shows the same filters as controls. Typing moves the controls. A control changes the chips. The Livewire and React components have the panel.
+
+## Actions
+
+The component has these public methods: `remove($id)`, `accept($id)`, `setFilter($field, $operator, $value)`, `unsetFilter($field)`, `clearSort()`, `clearKeywords()` and `clear()`. A suggested chip shows with a dashed border. Use `accept` to apply it.
+
+## Customize the views
+
+Publish the views with the `search-chips-views` tag.
+
+```bash
+php artisan vendor:publish --tag=search-chips-views
+```
+
+The views go to `resources/views/vendor/search-chips`.

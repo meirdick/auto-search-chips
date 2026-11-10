@@ -1,0 +1,52 @@
+---
+title: Vue
+description: The Inertia Vue component. Install, props, events, and what is not tested.
+sidebar:
+  order: 4
+---
+
+<Aside type="caution" title="Not compiled or run yet">
+  The Vue component is written. Nobody has compiled it or run it in a starter kit yet. Expect to fix problems. See [Limits](/limits/).
+</Aside>
+
+The Vue component is source code that the installer copies into your app.
+
+## Install
+
+```bash
+composer require meirdick/auto-search-chips
+php artisan search-chips:install --stack=vue
+```
+
+The installer detects Vue when `@inertiajs/vue3` is in `package.json`. It copies `core.ts`, `use-search-chips.ts` and `SearchChips.vue` to `resources/js/components/search-chips/`. The component imports `@inertiajs/vue3` and `lucide-vue-next`.
+
+## Tailwind
+
+The files are in `resources/js`, so Tailwind scans them. You need no `@source` line.
+
+## Controller
+
+The controller is the same as for [React](/frontend/react/#controller).
+
+## Page
+
+```vue
+<SearchChips for="posts" :initial="searchChips" :reload="['posts', 'searchChips']" />
+```
+
+## Props and events
+
+| Name | Meaning |
+| --- | --- |
+| `for` | The registered alias. Required. |
+| `placeholder` | The placeholder. Default `Search…`. |
+| `initial` | The `searchChips` prop from the controller. |
+| `reload` | Inertia props to reload when the filters change. |
+| `options` | `Partial<SearchChipsOptions>`. See [Headless core](/frontend/headless-core/). |
+| `filters` event | Emitted with the settled filters. |
+
+The composable `useSearchChips(options)` returns `state` (a shallow ref) and the actions.
+
+## No filter panel
+
+The Vue component has the search box and the chip row. It has no filter panel.

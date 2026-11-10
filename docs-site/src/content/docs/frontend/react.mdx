@@ -1,0 +1,74 @@
+---
+title: React
+description: The Inertia React component. Install, props, the useSearchChips hook, and the filter panel.
+sidebar:
+  order: 3
+---
+
+The React component is source code that the installer copies into your app. You own it. Restyle it or build on the hook.
+
+## Install
+
+```bash
+composer require meirdick/auto-search-chips
+php artisan search-chips:install --stack=react
+```
+
+The installer detects React when `@inertiajs/react` is in `package.json`. It copies three files to `resources/js/components/search-chips/`: `core.ts`, `search-chips.tsx` and `use-search-chips.ts`. It keeps files that exist, unless you pass `--force`.
+
+The component imports `@inertiajs/react` and `lucide-react`. It passed a `tsc` check and took the theme of a Laravel 13, Inertia 2, React 19 and Tailwind 4 app.
+
+## Tailwind
+
+The component files are in `resources/js`, so Tailwind scans them. You need no `@source` line for React. The `@source` line is only for the Livewire and Blade views.
+
+## Controller
+
+```php
+public function index(Request $request)
+{
+    $search = SearchChips::for('posts')->fromRequest($request);
+
+    return Inertia::render('Posts/Index', [
+        'posts' => $search->query()->with('author')->paginate()->withQueryString(),
+        'searchChips' => $search->toProps(),
+    ]);
+}
+```
+
+## Page
+
+```tsx
+import { SearchChips } from '@/components/search-chips/search-chips';
+
+<SearchChips for="posts" initial={searchChips} reload={['posts', 'searchChips']} />
+<SearchChips for="posts" initial={searchChips} reload={['posts', 'searchChips']} panel />
+```
+
+## Props
+
+| Prop | Meaning |
+| --- | --- |
+| `for` | The registered alias. Required. |
+| `placeholder` | The placeholder. Default `Search…`. |
+| `initial` | The `searchChips` prop from the controller. It restores the chips after a page load. |
+| `reload` | Inertia props to reload when the filters change. |
+| `onFilters` | A callback for the settled filters. Use it in place of `reload` for a custom request. |
+| `panel` | Show the filter panel. It needs `initial.fields`. |
+| `options` | `Partial<SearchChipsOptions>`, for example `baseUrl`. See [Headless core](/frontend/headless-core/). |
+
+All other props go to the outer `div`.
+
+With `reload`, the component calls `router.reload({ only, data, replace: true })`. The `data` holds `q`, `chips`, `leftover` and `sort`, which `fromRequest()` reads.
+
+## The hook
+
+`useSearchChips(options)` returns the state (`query`, `chips`, `leftover`, `sort`, `count`, `results`, `engine`, `warnings`, `status`) and the actions `setQuery`, `remove`, `accept`, `setFilter`, `unsetFilter`, `clearSort`, `clearKeywords` and `clear`.
+
+## Filter panel
+
+With `panel`, the component shows the filters as controls. Typing moves the controls. A control changes the chips.
+
+## Next steps
+
+- Read the core API in [Headless core](/frontend/headless-core/).

@@ -1,0 +1,13 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 5
+    paths:
+        - src
+    excludePaths:
+        # Compiled only when the optional meirdick/laravel-cf-workersai package is installed.
+        - src/Parsing/WorkersAiPackageExtractor.php
+    ignoreErrors:
+        # A trait that a package offers to its users has no user inside the package.
+        - identifier: trait.unused

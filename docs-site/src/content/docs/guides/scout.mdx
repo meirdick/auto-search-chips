@@ -1,0 +1,90 @@
+---
+title: Laravel Scout
+description: How a Scout Searchable model handles keyword text, which chips the search engine applies, and the config keys.
+sidebar:
+  order: 5
+---
+
+A model that uses the Scout `Searchable` trait sends the keyword text of a sentence through Scout. The package then uses one of two paths.
+
+```php
+SearchChips::for(Post::class)->search('videos about rockets above 10k views')->paginate();
+// Scout: "rockets", with type = video and views > 10000 as engine filters.
+```
+
+If there is no keyword text, the package does not call Scout.
+
+## The two paths
+
+| Path | When | What happens |
+| --- | --- | --- |
+| Engine path | The engine can apply every chip and the sort. | `get()`, `paginate()` and `count()` take rows and totals from the engine. |
+| Key path | The engine cannot apply one of the chips or the sort. | The package takes up to `scout.limit` keys from Scout and filters them in the database. |
+
+`query()` always uses the key path. It sends the chips the engine can apply with the keyword search, then applies every chip in SQL.
+
+`usesScoutFilters()` tells you which path a search takes.
+
+```php
+$search = SearchChips::for('posts')->search('rockets above 10k views');
+
+$search->usesScout();        // true: the model uses Searchable
+$search->usesScoutFilters(); // true: the engine path
+```
+
+## What each engine applies
+
+| Engine | Chips in the engine | Tested |
+| --- | --- | --- |
+| `collection`, `database` | All chips, and the `query` base scope | Yes, on SQLite |
+| Meilisearch | `equals`, `not_equals`, `in`, `is_true`, `is_false`, `gt`, `gte`, `lt`, `lte`, `between`, `before`, `after`, on fields in `filterableAttributes` | Yes, Meilisearch 1.56 |
+| Typesense | The same operators, on fields in the collection schema | Yes, Typesense 30.2 |
+| Algolia and other engines | None. The key path. | No |
+
+These chips always stay in the database on Meilisearch and Typesense:
+
+- Chips on relation fields, such as `author.name`.
+- Chips on fields with `onlyWhen()` conditions.
+- Text matching: `contains`, `starts_with` and `ends_with`.
+- `is_empty`, `not_empty` and `on`.
+- On Typesense, a negated chip on an optional field. Typesense has no "is not null" filter.
+- On Meilisearch, a date chip when `toSearchableArray()` returns the date as a string.
+
+A model with a `query` base scope uses the key path on Meilisearch and Typesense, because the scope is SQL.
+
+## Index settings
+
+The index must hold the fields. Print the settings a model needs:
+
+```bash
+php artisan search-chips:scout posts
+```
+
+The command prints `filterableAttributes` and `sortableAttributes` for `scout.meilisearch.index-settings`, and a `collection-schema` for `scout.typesense.model-settings`. It does not change your config.
+
+`toSearchableArray()` must return those fields. Store dates as Unix timestamps and yes/no fields as booleans.
+
+Meilisearch counts at most 1,000 hits unless you raise `pagination.maxTotalHits`.
+
+## The key limit
+
+On the key path, one search takes at most `scout.limit` keys. The default is 1,000. If Scout has more matches, the package ignores the rest. The engine path has no such limit for `paginate()` and `count()`.
+
+## Order
+
+On the key path, if the sentence has no sort and Scout returns 1 to 200 keys, the rows keep the order that Scout ranked. For more than 200 keys, the package adds no relevance order.
+
+## Config keys
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `scout.enabled` | `true` | Use Scout for models that use `Searchable`. Set `false` to search with `LIKE` on the `searchable()` fields instead. |
+| `scout.filters` | `true` | Send chips to the engine as filters. Set `false` to keep every chip in the database. |
+| `scout.limit` | `1000` | The most keys or rows one search takes from the engine. |
+
+No key has an env variable.
+
+## Next steps
+
+- Read [Limits](/limits/) for what is not tested.
+- See [Configuration](/reference/configuration/).

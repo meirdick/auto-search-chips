@@ -1,0 +1,103 @@
+---
+title: Configuration
+description: Every key in config/search-chips.php with its default and env variable.
+sidebar:
+  order: 1
+---
+
+Publish the file with `php artisan search-chips:install`, or with the `search-chips-config` tag:
+
+```bash
+php artisan vendor:publish --tag=search-chips-config
+```
+
+## Engine
+
+| Key | Env variable | Default | Meaning |
+| --- | --- | --- | --- |
+| `engine` | `SEARCH_CHIPS_ENGINE` | `auto` | `rules`, `auto`, `system-one`, `ai`, or a name added with `SearchChips::extend()`. See [Engines](/concepts/engines/). |
+
+## Cloudflare (`ai.cloudflare`)
+
+| Key | Env variable | Default | Meaning |
+| --- | --- | --- | --- |
+| `ai.cloudflare.account_id` | `CLOUDFLARE_ACCOUNT_ID` | `null` | Your Cloudflare account ID. |
+| `ai.cloudflare.api_token` | `CLOUDFLARE_API_TOKEN` | `null` | Your Cloudflare API token. |
+| `ai.cloudflare.model` | `SEARCH_CHIPS_CF_MODEL` | `@cf/cloudflare/clairic` | The model. |
+| `ai.cloudflare.url` | `SEARCH_CHIPS_CF_URL` | `null` | A full endpoint, for AI Gateway or a proxy. |
+| `ai.cloudflare.transport` | `SEARCH_CHIPS_CF_TRANSPORT` | `auto` | `auto` or `direct`. |
+| `ai.cloudflare.provider` | `SEARCH_CHIPS_CF_PROVIDER` | `null` | The `laravel/ai` provider name for `meirdick/laravel-cf-workersai`. |
+| `ai.cloudflare.presence_threshold` | none | `0.6` | An answer needs `1 - p_null` at or above this. |
+| `ai.cloudflare.confidence_threshold` | none | `0.6` | An answer below this is dropped. |
+| `ai.cloudflare.suggest_below` | none | `0.85` | An answer below this is a suggested chip. |
+| `ai.cloudflare.guess_p_null` | none | `0.65` | A confident guess with `p_null` at or below this is a suggested chip. |
+| `ai.cloudflare.max_fields` | none | `24` | The most fields sent. |
+| `ai.cloudflare.timeout` | none | `8` | Seconds. |
+
+## Chat (`ai.chat`)
+
+| Key | Env variable | Default | Meaning |
+| --- | --- | --- | --- |
+| `ai.chat.provider` | `SEARCH_CHIPS_CHAT_PROVIDER` | `null` | The `laravel/ai` provider. |
+| `ai.chat.model` | `SEARCH_CHIPS_CHAT_MODEL` | `null` | The model. |
+| `ai.chat.timeout` | none | `8` | Seconds. |
+
+## Models
+
+| Key | Env variable | Default | Meaning |
+| --- | --- | --- | --- |
+| `models` | none | `[]` | Aliases to register. A value is a class, or an array with `model` and options. See [Register models](/guides/register-models/). |
+| `auto_discover` | `SEARCH_CHIPS_AUTO_DISCOVER` | `false` | Register every model in `app/Models` under a slug alias. |
+| `discovery.sample_values` | `SEARCH_CHIPS_SAMPLE_VALUES` | `false` | Read a few distinct values of short text columns. The values go to the AI engine. |
+
+## Routes
+
+| Key | Env variable | Default | Meaning |
+| --- | --- | --- | --- |
+| `routes.enabled` | none | `true` | Register the JSON routes. |
+| `routes.prefix` | none | `search-chips` | The route prefix. |
+| `routes.middleware` | none | `['web', 'auth', 'throttle:search-chips']` | The route middleware. |
+| `routes.rate_limit` | none | `120` | Requests per minute, per user or IP. |
+
+## Authorization and text
+
+| Key | Env variable | Default | Meaning |
+| --- | --- | --- | --- |
+| `authorize` | none | `null` | A Gate ability or a closure, checked for every alias before the per-model `authorize` option. |
+| `stopwords` | none | `[]` | Extra words to ignore in keyword text. |
+
+## Limits
+
+| Key | Env variable | Default | Meaning |
+| --- | --- | --- | --- |
+| `limits.max_filters` | none | `10` | The most chips in one result. |
+| `limits.max_query_length` | none | `300` | The longest sentence. |
+
+## Scout
+
+| Key | Env variable | Default | Meaning |
+| --- | --- | --- | --- |
+| `scout.enabled` | none | `true` | Send keyword text through Scout for `Searchable` models. |
+| `scout.filters` | none | `true` | Send chips to the Scout engine as filters when it can apply them. |
+| `scout.limit` | none | `1000` | The most keys or rows one search takes from the engine. |
+
+## Cache
+
+| Key | Env variable | Default | Meaning |
+| --- | --- | --- | --- |
+| `cache.store` | `SEARCH_CHIPS_CACHE_STORE` | `null` | The cache store. `null` uses the default store. |
+| `cache.enabled` | `SEARCH_CHIPS_CACHE` | `true` | Cache AI parses. The rules engine is never cached. |
+| `cache.ttl` | none | `300` | Seconds to keep an AI parse. |
+| `cache.schema` | `SEARCH_CHIPS_SCHEMA_CACHE` | `false` | Keep schemas until `search-chips:clear`. Turn on in production, and run `search-chips:cache` on deploy. |
+
+## Production
+
+```dotenv
+SEARCH_CHIPS_SCHEMA_CACHE=true
+```
+
+```bash
+php artisan search-chips:cache
+```
+
+A model that declares `searchChips()` needs no table query.

@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Auto Search Chips for Laravel</title>
+  <meta name="description" content="A Laravel package that reads a plain search sentence, turns it into typed filters on an Eloquent model, and shows each filter as a chip the user can remove.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="/fonts/schibsted-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="top">
+    <a class="name" href="/">auto-search-chips</a>
+    <nav aria-label="Main">
+      <a href="/docs/quickstart/">Quickstart</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/meirdick/auto-search-chips">GitHub</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <p class="eyebrow">Laravel package · v0.1 pre-release</p>
+      <h1>Your users type a sentence. Eloquent gets typed filters.</h1>
+      <p class="lede">The package reads a plain search sentence and turns it into filters on your model. It shows each filter as a chip under the search box, so the user sees how the search was read and can remove a part. It works with no API key. An AI step is optional.</p>
+    </section>
+
+    <section class="demo" data-demo aria-labelledby="demo-title">
+      <h2 id="demo-title" class="sr">Demo</h2>
+
+      <div class="box" aria-label="Search sentence">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clip-rule="evenodd"/></svg>
+        <p class="query" data-query aria-live="off"></p>
+      </div>
+
+      <div class="read" role="status" aria-live="polite">
+        <span class="showing">Showing</span>
+        <ul data-chips aria-label="Active filters"></ul>
+        <span class="count" data-count></span>
+      </div>
+
+      <div class="table">
+        <table>
+          <thead><tr><th>Title</th><th>Type</th><th>Author</th><th>Views</th><th>Published</th></tr></thead>
+          <tbody data-rows></tbody>
+        </table>
+      </div>
+
+      <div class="try">
+        <p>Try a sentence:</p>
+        <div class="examples" data-examples></div>
+      </div>
+
+      <p class="note">Each sentence was parsed by the package in the demo app, with the rules engine and Cloudflare Clairic. The chips are that recorded result. The filters run in your browser on 60 sample posts, so you can remove a chip and see the list change. This page does not call a server.</p>
+    </section>
+
+    <section class="steps" aria-labelledby="start-title">
+      <h2 id="start-title">Three steps to a search box</h2>
+      <ol>
+        <li>
+          <h3>Install</h3>
+          <pre><code>composer require meirdick/auto-search-chips
+php artisan search-chips:install</code></pre>
+          <p>The install command finds your stack and copies the component for it: Livewire, React, Vue, Svelte, or Blade with Alpine.</p>
+        </li>
+        <li>
+          <h3>Name the fields</h3>
+          <pre><code>use Meirdick\SearchChips\HasSearchChips;
+use Meirdick\SearchChips\Schema\ChipSchema;
+
+class Post extends Model
+{
+    use HasSearchChips;
+
+    public function searchChips(ChipSchema $chips): void
+    {
+        $chips->text('title')->searchable();
+        $chips->enum('type', ['video' => 'Video', 'article' => 'Article'])
+            ->synonyms(['movie' => 'video']);
+        $chips->number('views')->aliases('plays')->sortable();
+        $chips->datetime('published_at')->label('Published');
+        $chips->relation('author', 'name');
+    }
+}</code></pre>
+          <p>Only the fields you name can be filtered. The package can also write this method for you from the table.</p>
+        </li>
+        <li>
+          <h3>Register and show</h3>
+          <pre><code>// AppServiceProvider
+SearchChips::register(Post::class, 'posts');</code></pre>
+          <pre><code>&lt;livewire:search-chips for="posts" panel /&gt;</code></pre>
+          <p>Or use it in PHP with no UI: <code>SearchChips::for(Post::class)->search($text)->paginate()</code>.</p>
+        </li>
+      </ol>
+      <p class="next"><a class="button" href="/docs/quickstart/">Read the quickstart</a> <a href="/docs/overview/">Overview</a></p>
+    </section>
+
+    <section class="facts" aria-labelledby="facts-title">
+      <h2 id="facts-title">What you get</h2>
+      <dl>
+        <div>
+          <dt>A rules engine that needs no key</dt>
+          <dd>Types, numbers, units, dates, ranges, negation and sort are read in PHP. No network call. Chips show while the user types.</dd>
+        </div>
+        <div>
+          <dt>AI that adds, and does not override</dt>
+          <dd>Cloudflare Clairic or a chat model reads the words the rules did not explain. A chip from the rules always stays. A chip the AI is not sure of shows as a suggestion.</dd>
+        </div>
+        <div>
+          <dt>One check on every chip</dt>
+          <dd>Each chip is checked against your field list before it touches the query. That is true for chips from the rules, from the AI and from the browser.</dd>
+        </div>
+        <div>
+          <dt>Safe defaults</dt>
+          <dd>Routes need a signed-in user and have a rate limit. A model is reachable only after you register it. No row values go to an AI provider.</dd>
+        </div>
+        <div>
+          <dt>A component for each starter kit</dt>
+          <dd>Livewire, React and Blade with Alpine are tested in a browser. Vue and Svelte components ship but are not run in a starter kit yet.</dd>
+        </div>
+        <div>
+          <dt>Tests without a network</dt>
+          <dd><code>SearchChips::fake()</code> returns the chips you give it, so your feature tests do not call a model.</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="status" aria-labelledby="status-title">
+      <h2 id="status-title">Status</h2>
+      <p>Version 0.1 is not tagged yet. The test suite runs on PHP 8.3 to 8.5 with Laravel 12 and 13, on SQLite. Laravel Scout is tested with Meilisearch and Typesense. MySQL, PostgreSQL and Algolia are not run yet. Read the <a href="/docs/limits/">limits page</a> before you use it in production.</p>
+    </section>
+  </main>
+
+  <footer>
+    <p>MIT license. Made by Meir Dick.</p>
+    <p><a href="/docs/">Docs</a> <a href="/docs/changelog/">Changelog</a> <a href="https://github.com/meirdick/auto-search-chips">GitHub</a></p>
+  </footer>
+
+  <script src="/demo-data.js"></script>
+  <script src="/demo.js"></script>
+</body>
+</html>

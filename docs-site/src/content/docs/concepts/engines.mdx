@@ -1,0 +1,60 @@
+---
+title: Engines
+description: The rules, auto, system-one and ai engines. How auto chooses, and what each engine needs.
+sidebar:
+  order: 2
+---
+
+An engine reads the sentence and returns filters. The rules engine always runs first. An AI engine can then add chips. See [How it works](/concepts/how-it-works/).
+
+Set the engine with the `SEARCH_CHIPS_ENGINE` env variable or the `engine` config key. Set one model's engine with the `engine` option in its registration.
+
+## The engines
+
+| Name | What it does | What it needs |
+| --- | --- | --- |
+| `rules` | Rules only. No network. | Nothing. |
+| `auto` (default) | Uses System One when it is available. Otherwise rules only. | Nothing. System One needs credentials to take effect. |
+| `system-one` | Cloudflare Clairic. | Cloudflare credentials, or `meirdick/laravel-cf-workersai` with a configured provider. |
+| `ai` | A chat model through `laravel/ai`. | `laravel/ai`, a provider and a model. |
+| Your own name | An engine you add with `SearchChips::extend()`. | See [Custom engine](/guides/custom-engine/). |
+
+An engine name that is not in this list throws an `InvalidArgumentException`. Its message names the valid engines.
+
+## How `auto` chooses
+
+1. In a test run, `auto` uses rules only. A test never calls a model by accident. To test an engine, set it by name and fake the HTTP call.
+2. Otherwise `auto` selects `system-one`.
+3. If `system-one` is not available, the package uses rules only.
+
+`auto` never falls back from one AI engine to another. It does not select `ai`.
+
+## When an engine is available
+
+| Engine | Available when |
+| --- | --- |
+| `system-one` | `meirdick/laravel-cf-workersai` is installed and has a provider with a key, or `ai.cloudflare.account_id` and `ai.cloudflare.api_token` are both set. |
+| `ai` | `laravel/ai` is installed and `ai.chat.provider` and `ai.chat.model` are both set. |
+
+If an engine is not available, the package uses rules only. It does not show an error. The `engine` value of the result is then `rules`. Run `php artisan search-chips:parse` to see the engine that answered.
+
+## System One
+
+System One sends the sentence and a typed question for each field to Cloudflare Clairic. Clairic returns one answer per field, with a confidence and the position of the words. It returns values, not operators. The rules engine reads the operator from the words around each value.
+
+Clairic does not receive free-text `searchable()` fields. The keyword text covers them.
+
+The AI settings are in [AI engines](/guides/ai-engines/).
+
+## Chat engine
+
+The `ai` engine asks a chat model for structured output through `laravel/ai`. You set the provider and the model. The package does not use `laravel/ai` defaults. The model quotes the words of each filter. The package finds the position of those words in code.
+
+## Failure
+
+If an AI engine throws an `EngineUnavailableException`, the package reports it with `report()`. The rules chips stand.
+
+## Next steps
+
+- Set up credentials in [AI engines](/guides/ai-engines/).
+- See every key in [Configuration](/reference/configuration/).

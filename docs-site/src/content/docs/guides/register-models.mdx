@@ -1,0 +1,85 @@
+---
+title: Register models
+description: Register a model under an alias with SearchChips::register() or in config, and set its options.
+sidebar:
+  order: 2
+---
+
+The routes and the UI components accept an alias. A class name from a request never resolves. A model is reachable from the browser only after you register it.
+
+## Register in a provider
+
+```php
+use Meirdick\SearchChips\Facades\SearchChips;
+
+SearchChips::register(Post::class, 'posts');
+SearchChips::register(Post::class, 'posts', [
+    'authorize' => 'viewAny',
+    'query' => fn ($query) => $query->where('team_id', auth()->user()->team_id),
+]);
+```
+
+The signature is `register(string $modelClass, ?string $alias = null, array $options = [])`.
+
+An alias holds lowercase letters, digits, dashes and underscores. It must start with a letter or a digit. With no alias, the package uses the plural kebab case of the class name, for example `blog-posts`. Any other alias throws an `InvalidModelException`.
+
+## Register in config
+
+Set the `models` key in `config/search-chips.php`.
+
+```php
+'models' => [
+    'posts' => App\Models\Post::class,
+    'videos' => [
+        'model' => App\Models\Post::class,
+        'only' => ['title', 'type', 'views'],
+        'authorize' => 'viewAny',
+    ],
+],
+```
+
+Options that need a closure (`query`) go through `SearchChips::register()`. With `auto_discover` on, the package registers every model in `app/Models` under a slug alias. Leave it off outside prototypes.
+
+## Options
+
+| Option | Use |
+| --- | --- |
+| `only` | Allow-list of field names. |
+| `exclude` | Field names to remove. |
+| `search` | Text fields that keyword text searches. |
+| `orderable` | Fields that a sort can use. |
+| `relations` | Allow-list of relation filters. It applies to discovered models. |
+| `fields` | Per-field settings: `label`, `aliases`, `values`, `value_labels`, `unit`, `scale`, `searchable`, `orderable`. |
+| `engine` | The engine for this model. See [Engines](/concepts/engines/). |
+| `authorize` | A Gate ability. The package calls `Gate::authorize($ability, $modelClass)`. In `register()`, it can also be a closure. The closure receives the user and the model class. |
+| `query` | A closure that scopes every search of the model. It receives the builder. |
+| `columns` | The columns in each row that the JSON routes return. |
+| `resource` | A `JsonResource` class for the rows that the JSON routes return. |
+| `http` | Set `false` to keep the alias off the routes and components. |
+
+## Exposed and not exposed
+
+`exposed` means that the routes and components can reach the alias. A model is exposed when you register it, unless `http` is `false`.
+
+`SearchChips::for(Post::class)` also works for a class that you never registered. That is code-level use. The package then registers the class with `exposed` false. The routes still return 404 for it until you register it.
+
+## The base query
+
+The `query` option scopes every search that goes through `SearchChips::for()`, the JSON routes and the Livewire component. Global scopes also apply.
+
+The `autoSearch` scope does not use the `query` option. It filters the builder that you give it. See [Search in PHP](/guides/search-in-php/).
+
+## Authorization
+
+The package runs the checks in this order for the routes and the components:
+
+1. The alias must be registered and exposed. Otherwise the response is 404.
+2. The global `authorize` config key. It is a Gate ability or a closure.
+3. The `authorize` option of the model.
+
+PHP calls such as `SearchChips::for('posts')->search()` do not run these checks. Your code decides who may call them.
+
+## Next steps
+
+- Run a search from PHP in [Search in PHP](/guides/search-in-php/).
+- Read [Security](/guides/security/).

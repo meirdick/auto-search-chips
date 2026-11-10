@@ -1,0 +1,76 @@
+---
+title: Custom engine
+description: Add your own engine with SearchChips::extend() and the Parser contract.
+sidebar:
+  order: 8
+---
+
+You can add an engine that reads the sentence in your own way. Register it by name, then select it by name.
+
+## Register and select
+
+```php
+use Meirdick\SearchChips\Facades\SearchChips;
+
+SearchChips::extend('mine', fn ($app) => new MyParser);
+```
+
+The closure receives the container and returns a `Parser`. Select the engine with `SEARCH_CHIPS_ENGINE=mine`, or with the `engine` option of one model.
+
+## The Parser contract
+
+Implement `Meirdick\SearchChips\Contracts\Parser`.
+
+```php
+use Meirdick\SearchChips\Contracts\Parser;
+use Meirdick\SearchChips\Data\ModelSchema;
+use Meirdick\SearchChips\Data\ParsedQuery;
+
+class MyParser implements Parser
+{
+    public function available(): bool
+    {
+        return true;
+    }
+
+    public function parse(string $query, ModelSchema $schema): ParsedQuery
+    {
+        return new ParsedQuery([
+            [
+                'field' => 'type',
+                'operator' => 'equals',
+                'value' => 'podcast',
+                'source' => 'ai',
+                'spans' => [['start' => 0, 'end' => 4]],
+            ],
+        ], null, null, 'mine');
+    }
+}
+```
+
+| Method | Meaning |
+| --- | --- |
+| `available(): bool` | Return `false` when the engine cannot run, for example when credentials are missing. The package then uses rules only. |
+| `parse(string $query, ModelSchema $schema): ParsedQuery` | Return raw filters for the schema. |
+
+Treat the sentence as untrusted input. Stay within the fields of the schema. The normalizer does the final check.
+
+## ParsedQuery
+
+The constructor takes: `filters`, `leftover` (default `null`), `sort` (default `null`), `engine` (default `'rules'`), `warnings`, `consumed` and `keywords`.
+
+Each raw filter is an array. The keys are `field`, `operator`, `value`, `negated`, `confidence`, `spans`, `unit`, `suggested`, `explicit`, `id`, `label` and `source`.
+
+- A filter with `'source' => 'ai'` or `'source' => 'system-one'` must have valid `spans`. A span is a byte offset pair, `['start' => 0, 'end' => 4]`, into the sentence. The normalizer drops a filter of these sources that has no usable span.
+- `operator` must be valid for the field kind. See [Operators](/reference/operators/).
+- Set `suggested` to `true` for a chip that the user must accept.
+
+## How the package uses it
+
+A custom engine works like an AI engine. The rules engine runs first. Your engine then adds chips, under the merge policy in [How it works](/concepts/how-it-works/). If your engine throws an `EngineUnavailableException`, the rules chips stand.
+
+The package caches the result of an AI engine. See [AI engines](/guides/ai-engines/#parse-cache).
+
+## Next steps
+
+- See the engines that ship with the package in [Engines](/concepts/engines/).

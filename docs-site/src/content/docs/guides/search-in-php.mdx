@@ -1,0 +1,107 @@
+---
+title: Search in PHP
+description: Run a search from PHP with SearchChips::for(), the autoSearch scope, fromRequest() and toProps().
+sidebar:
+  order: 3
+---
+
+You can search without any component. Use the fluent handle or the model scope.
+
+## The fluent handle
+
+`SearchChips::for()` takes an alias or a class name.
+
+```php
+use Meirdick\SearchChips\Facades\SearchChips;
+
+$search = SearchChips::for(Post::class)->search('featured podcasts last month');
+
+$search->filters();   // FilterCollection of chips
+$search->leftover();  // the keyword text
+$search->sort();      // ?array
+$search->engine();    // string
+$search->query();     // Eloquent builder with everything applied
+$search->get();
+$search->paginate();
+$search->count();
+```
+
+`paginate()` takes `$perPage = 15`, `$pageName = 'page'` and `$page = null`. `get()` returns a `Collection`.
+
+`query()` returns a fresh builder. Add your own scopes, joins and `with()` calls to it.
+
+```php
+$posts = SearchChips::for('posts')
+    ->search('videos by Ada above 10k views')
+    ->query()
+    ->with('author')
+    ->paginate();
+```
+
+## The handle methods
+
+| Method | Result |
+| --- | --- |
+| `search(string $query, bool $refine = true)` | A `PendingSearch`. |
+| `parse(string $query, bool $refine = true)` | A `ParseResult`. Runs no search query. A model with no `searchChips()` method reads its columns from the database the first time. |
+| `applyChips(array $chips, string $leftover = '', ?array $sort = null, ?string $query = null)` | A `PendingSearch` from a chip set. No engine runs. |
+| `fromRequest(Request $request)` | A `PendingSearch` from a page request. |
+| `schema()` | The `ModelSchema`. |
+| `alias()` and `modelClass()` | The alias and the class. |
+
+Set `refine` to `false` to run the rules engine only. There is then no network call.
+
+```php
+$result = SearchChips::for('posts')->parse('videos by Ada', refine: false);
+```
+
+## Chips from the browser
+
+`applyChips()` takes a chip set that the browser edited, for example in a Livewire list component. The package checks each chip against the schema like engine output. A chip for a field that is not in the schema is dropped.
+
+## From a page request
+
+`fromRequest()` reads `chips`, `leftover` and `sort` from the request. These are what the UI components send. If there are no `chips`, it parses the `q` text. With neither, nothing is filtered.
+
+```php
+public function index(Request $request)
+{
+    $search = SearchChips::for('posts')->fromRequest($request);
+
+    return Inertia::render('Posts/Index', [
+        'posts' => $search->query()->with('author')->paginate()->withQueryString(),
+        'searchChips' => $search->toProps(),
+    ]);
+}
+```
+
+`toProps()` returns the props for the Inertia components. Pass it as the `initial` prop.
+
+| Key | Value |
+| --- | --- |
+| `query` | The text for the search box. |
+| `chips` | The chips. |
+| `leftover` | The keyword text. |
+| `sort` | The sort, or `null`. |
+| `count` | The number of matching rows. |
+| `engine` | The engine that made the chips. |
+| `fields` | The fields for the filter panel. |
+
+## The `autoSearch` scope
+
+The `HasSearchChips` trait adds a scope.
+
+```php
+Post::query()->autoSearch('videos by Ada above 10k views')->paginate();
+```
+
+The scope uses the model schema. It does not use the `query` option from registration. It does not make the model reachable from the routes.
+
+## Pagination
+
+`paginate()` runs the query and fires `SearchChipsApplied` once. Use `withQueryString()` to keep `q`, `chips` and `sort` in the page links. If the page has other filters, pass them through the links yourself.
+
+## Next steps
+
+- Test your code in [Testing](/guides/testing/).
+- See the route payload in [Headless core](/frontend/headless-core/).

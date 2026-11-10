@@ -1,0 +1,71 @@
+---
+title: Testing
+description: Use SearchChips::fake() to record parses, stub results, and assert on them.
+sidebar:
+  order: 7
+---
+
+`SearchChips::fake()` swaps the manager for a `FakeSearchChips`. It records every parse. It can return a fixed result for an alias. When you stub nothing, it runs the real rules engine, so chip behavior stays testable with no network.
+
+The examples use Pest.
+
+## Record and assert
+
+```php
+use Meirdick\SearchChips\Facades\SearchChips;
+
+SearchChips::register(Post::class, 'posts');
+
+$fake = SearchChips::fake();
+
+SearchChips::for('posts')->search('videos by Ada');
+
+$fake->assertParsed('videos by Ada', 'posts');
+$fake->assertParsed('videos by Ada');
+```
+
+## Stub a result
+
+`shouldReturn($model, $result)` takes an alias or a class, and a `ParseResult` or a closure. The closure receives the query and the alias.
+
+```php
+use Meirdick\SearchChips\Data\FilterCollection;
+use Meirdick\SearchChips\ParseResult;
+
+$stub = new ParseResult(new FilterCollection([]), 'stubbed', null, 'fake');
+
+SearchChips::fake()->shouldReturn('posts', $stub);
+
+SearchChips::for('posts')->search('anything')->leftover(); // 'stubbed'
+```
+
+## Methods
+
+| Method | Behavior |
+| --- | --- |
+| `SearchChips::fake()` | Returns the `FakeSearchChips` and swaps it in. |
+| `shouldReturn(string $model, ParseResult\|Closure $result)` | Stubs the parse result for an alias. Returns the fake. |
+| `assertParsed(string $query, ?string $model = null)` | Fails unless a parse of that sentence was recorded. With `$model`, it must be for that alias. |
+| `assertNothingParsed()` | Fails if any parse was recorded. |
+| `recorded()` | Returns a list of `[alias, query]` pairs. |
+
+The fake records calls to `parse()`, which `search()` uses. It does not record `applyChips()`.
+
+## Engines in tests
+
+With the `auto` engine, a test run uses rules only. The package never calls a model by accident. To test an AI engine, set it by name and fake the HTTP call.
+
+```php
+use Illuminate\Support\Facades\Http;
+
+config()->set('search-chips.engine', 'system-one');
+config()->set('search-chips.ai.cloudflare', ['account_id' => 'account', 'api_token' => 'token']);
+
+Http::fake(['*/ai/run/*' => Http::response(['result' => ['answers' => []]])]);
+```
+
+For the chat engine, use the `laravel/ai` fake.
+
+## Next steps
+
+- Add an engine in [Custom engine](/guides/custom-engine/).

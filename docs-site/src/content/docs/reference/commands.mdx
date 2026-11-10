@@ -1,0 +1,85 @@
+---
+title: Commands
+description: Every Artisan command of the package, with its arguments and flags.
+sidebar:
+  order: 2
+---
+
+The package registers five commands when Laravel runs in the console.
+
+| Command | Purpose |
+| --- | --- |
+| `search-chips:install` | Publish the config and install the UI for your stack. |
+| `search-chips:schema` | Show what is filterable. |
+| `search-chips:parse` | Show the chips of a sentence. |
+| `search-chips:cache` | Cache the schema of every registered model. |
+| `search-chips:clear` | Clear cached schemas and cached AI parses. |
+| `search-chips:scout` | Print the index settings a Scout model needs. |
+
+## search-chips:install
+
+```bash
+php artisan search-chips:install {--stack=} {--force}
+```
+
+| Option | Meaning |
+| --- | --- |
+| `--stack=` | `livewire`, `blade`, `react`, `vue` or `svelte`. The installer detects the stack when you omit it. |
+| `--force` | Overwrite component files that already exist. |
+
+Detection reads `package.json`. `@inertiajs/react`, `@inertiajs/vue3` and `@inertiajs/svelte` select `react`, `vue` and `svelte`. Otherwise it selects `livewire` when Livewire is installed, or `blade`.
+
+For `livewire` and `blade`, it adds a `@source` line to `resources/css/app.css`. For the other stacks, it copies the component files to `resources/js/components/search-chips/`. An unknown stack fails with the list of valid stacks.
+
+## search-chips:schema
+
+```bash
+php artisan search-chips:schema {alias?} {--json} {--stub}
+```
+
+| Argument or option | Meaning |
+| --- | --- |
+| `alias` | A registered alias. Without it, the command lists the registered aliases and classes. |
+| `--json` | Print JSON: `model`, `version`, `searchable`, `orderable` and `fields`. |
+| `--stub` | Print a `searchChips()` method for the model. |
+
+With no option, it prints a table with the columns Field, Kind, Searchable, Orderable, Relation and Values.
+
+## search-chips:parse
+
+```bash
+php artisan search-chips:parse {alias} {query*}
+```
+
+The query can have several words. You do not need quotes. The command prints the engine, each chip with its confidence (when below 100%) and `[suggested]` marks, the keyword text, the sort and any warnings. It uses the engine that your config selects, so it can call an AI engine.
+
+## search-chips:cache
+
+```bash
+php artisan search-chips:cache
+```
+
+The command discovers and caches the schema of every registered model. If `cache.schema` is off, it prints a warning and does nothing.
+
+## search-chips:clear
+
+```bash
+php artisan search-chips:clear
+```
+
+The command clears cached schemas and cached AI parses.
+
+## search-chips:scout
+
+```bash
+php artisan search-chips:scout {alias}
+```
+
+Prints the `filterableAttributes` and `sortableAttributes` for Meilisearch and a `collection-schema` for Typesense. It does not change your config. See [Laravel Scout](/guides/scout/).
+
+## Publish tags
+
+| Tag | Result |
+| --- | --- |
+| `search-chips-config` | `config/search-chips.php` |
+| `search-chips-views` | `resources/views/vendor/search-chips` |

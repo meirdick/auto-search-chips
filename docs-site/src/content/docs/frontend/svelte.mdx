@@ -1,0 +1,50 @@
+---
+title: Svelte
+description: The Inertia Svelte component. Install, props, and what is not tested.
+sidebar:
+  order: 5
+---
+
+<Aside type="caution" title="Not compiled or run yet">
+  The Svelte component is written. Nobody has compiled it or run it in a starter kit yet. Expect to fix problems. See [Limits](/limits/).
+</Aside>
+
+The Svelte component is source code that the installer copies into your app.
+
+## Install
+
+```bash
+composer require meirdick/auto-search-chips
+php artisan search-chips:install --stack=svelte
+```
+
+The installer detects Svelte when `@inertiajs/svelte` is in `package.json`. It copies `core.ts` and `SearchChips.svelte` to `resources/js/components/search-chips/`. The component imports `@inertiajs/svelte` and `lucide-svelte`, and uses Svelte 5 runes.
+
+## Tailwind
+
+The files are in `resources/js`, so Tailwind scans them. You need no `@source` line.
+
+## Controller
+
+The controller is the same as for [React](/frontend/react/#controller).
+
+## Page
+
+```svelte
+<SearchChips for="posts" initial={searchChips} reload={['posts', 'searchChips']} />
+```
+
+## Props
+
+| Prop | Meaning |
+| --- | --- |
+| `for` | The registered alias. Required. |
+| `placeholder` | The placeholder. Default `Search…`. |
+| `initial` | The `searchChips` prop from the controller. |
+| `reload` | Inertia props to reload when the filters change. |
+| `onfilters` | A callback for the settled filters. |
+| `options` | `Partial<SearchChipsOptions>`. See [Headless core](/frontend/headless-core/). |
+
+## No filter panel
+
+The Svelte component has the search box and the chip row. It has no filter panel.

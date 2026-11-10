@@ -1,0 +1,81 @@
+---
+title: How it works
+description: The pipeline from a sentence to a database query, the two-phase parse, and how chips, suggested chips and keyword text differ.
+sidebar:
+  order: 1
+---
+
+A search passes through four parts. Each part has one job.
+
+## The pipeline
+
+| Part | Class | Job |
+| --- | --- | --- |
+| Schema | `Data\ModelSchema` | Lists the fields, kinds and values the model allows. It comes from `searchChips()` or from discovery. |
+| Parser | `Parsing\RulesParser` and an optional AI engine | Reads the sentence. Returns raw filters. |
+| Normalizer | `Parsing\FilterNormalizer` | Checks every raw filter against the schema. Drops what is invalid. |
+| Applicator | `Applying\EloquentApplicator` | Turns the valid filters into an Eloquent query. |
+
+The normalizer is the trust boundary. It checks output from every engine, including AI engines:
+
+- It resolves each field against the schema.
+- It checks each operator against the operators for that field kind. See [Operators](/reference/operators/).
+- It converts each value to the field type.
+- It checks the position of each chip in the sentence.
+- It drops anything invalid and adds a message to `warnings`.
+
+The package keeps at most `limits.max_filters` chips (10 by default). It reads at most `limits.max_query_length` characters (300 by default).
+
+## Chips, suggested chips and keyword text
+
+A parse returns three kinds of result.
+
+| Term | Meaning |
+| --- | --- |
+| Chip | One applied filter on one field. The user can remove it. |
+| Suggested chip | A chip with `suggested: true`. It shows with a dashed border. The query does not use it until the user accepts it. |
+| Keyword text | The words that no chip explained. The query searches the `searchable()` fields for each word. The API name is `leftover`. |
+
+Keyword text drops filler words such as `show`, `with` and `written`. Add more with the `stopwords` config key.
+
+A sort word such as `latest` is not a chip. It sets the `sort` value. The components show it in its own pill.
+
+An AI engine can return a suggested chip when it is not sure. The words of a suggested chip stay in the keyword text until the user accepts the chip.
+
+## Two-phase parse
+
+The components parse in two phases.
+
+1. **Phase 1.** The component asks for a parse with `refine: false`. Only the rules engine runs. It takes a few milliseconds. The result has `refinable: true` when an AI engine is available for the model.
+2. **Phase 2.** If `refinable` is true, the component asks again with `refine: true`. The AI engine runs. The component then replaces the chips.
+
+The component ignores phase 2 when the user typed more text or edited the chips in the meantime.
+
+## Merge policy
+
+The rules chips always stand. The AI adds chips. The merge follows these steps.
+
+1. The package keeps every rules chip.
+2. For each AI chip, the package checks the field. If the rules already made a chip on that field, it drops the AI chip.
+3. The package then checks the words. If the AI chip covers words that the rules already used, it drops the AI chip.
+4. The package adds the AI chips that remain.
+5. The package computes the keyword text again from the words that no chip uses.
+6. The AI engine also names the topic words of the sentence. Keyword text that is not in that list leaves the search. The AI never adds a word.
+
+If the AI call fails, the rules reading stands. There is no fallback from one AI engine to another. If the rules made no chips, the package uses the AI result as it is.
+
+## Events
+
+The package dispatches two events in `Meirdick\SearchChips\Events`.
+
+| Event | Properties |
+| --- | --- |
+| `SearchChipsParsed` | `query`, `alias`, `filters`, `engine`, `leftover`, `warnings` |
+| `SearchChipsApplied` | `query`, `alias`, `filters`, `count`, `engine` |
+
+`SearchChipsApplied` fires once per search, when you call `get()` or `paginate()`.
+
+## Next steps
+
+- Choose an engine in [Engines](/concepts/engines/).
+- Define fields in [Define fields](/guides/define-fields/).

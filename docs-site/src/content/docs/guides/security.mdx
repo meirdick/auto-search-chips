@@ -1,0 +1,103 @@
+---
+title: Security
+description: Route middleware, the rate limiter, authorization, exposed fields, onlyWhen, value sampling, and what an AI provider receives.
+sidebar:
+  order: 6
+---
+
+This page lists the controls that the package gives you. Review each one before you put a search box on a public page.
+
+## Route middleware
+
+The JSON routes serve the Blade and Inertia components. The Livewire component does not use them.
+
+The default middleware is `['web', 'auth', 'throttle:search-chips']`. Change it with `routes.middleware` in `config/search-chips.php`. For a public search page, remove `auth`.
+
+```php
+'routes' => [
+    'middleware' => ['web', 'throttle:search-chips'],
+],
+```
+
+To turn the routes off, set `routes.enabled` to `false`. The Blade component then cannot load its script.
+
+## Rate limit
+
+The package defines a rate limiter named `search-chips`. It allows `routes.rate_limit` requests per minute (120 by default). The limit counts per user ID, or per IP address for a guest. If you replace the middleware, keep `throttle:search-chips`.
+
+## Aliases only
+
+A request carries an alias. A class name from a request never resolves. A model is reachable only after `SearchChips::register()` or an entry in `models`. An unknown or unexposed alias returns 404. See [Register models](/guides/register-models/).
+
+## Authorize
+
+Check a Gate ability for every alias with the global `authorize` config key. Check one model with its `authorize` option. The global check runs first.
+
+```php
+SearchChips::register(Post::class, 'posts', ['authorize' => 'viewAny']);
+```
+
+A failed check returns 403. The Livewire component runs the same checks on mount and on every action.
+
+PHP calls such as `SearchChips::for()` do not run these checks.
+
+## Scope every search
+
+The `query` option scopes every search of a model that goes through `SearchChips::for()`, the routes and the components.
+
+```php
+SearchChips::register(Post::class, 'posts', [
+    'query' => fn ($query) => $query->where('team_id', auth()->user()->team_id),
+]);
+```
+
+The `autoSearch` scope does not use this option.
+
+## Exposed fields
+
+Only the fields in the schema are reachable. A chip for any other field is dropped. This holds for chips that come back from the browser too.
+
+- Declare fields with `searchChips()`. See [Define fields](/guides/define-fields/).
+- Limit a model further with the `only` and `exclude` options.
+- Discovery skips hidden attributes, foreign keys, the soft-delete column and columns whose name looks like a secret. Declare `searchChips()` on any model that users can search.
+
+## `onlyWhen`
+
+`onlyWhen()` limits the rows that a filter can select. An author filter then cannot find anonymous posts.
+
+```php
+$chips->relation('user', 'name')->onlyWhen(['is_anonymous' => false]);
+```
+
+- A filter on that field only selects rows that meet the conditions.
+- A negated filter keeps every row that fails the conditions. A hidden value cannot be read from what the negated filter leaves out.
+- Keyword text that searches the related name also obeys the conditions.
+
+## Value sampling
+
+Discovery can read a few distinct values of short text columns, so that words like `podcasts` resolve with no setup. These values are real row data. They go to the AI engine. Sampling is off by default.
+
+Set `SEARCH_CHIPS_SAMPLE_VALUES=true` to turn it on. It applies to discovered models only. A model that declares `searchChips()` is never sampled.
+
+## What an AI provider receives
+
+No row data goes to an AI engine unless sampling is on. These items do go:
+
+| Engine | Sent |
+| --- | --- |
+| `system-one` | The sentence, today's date, and for each field (at most `max_fields`) a type and a question that names the field label. For an enum or a field with values, the question lists the allowed values and the synonym words. It also asks for the topic words. |
+| `ai` | The sentence, today's date, and a schema: field names, kinds, labels, aliases, values, units, operators, and the sortable fields. |
+
+The sentence is what the user typed. It can hold personal data.
+
+## Limits on input
+
+| Key | Default | Effect |
+| --- | --- | --- |
+| `limits.max_query_length` | `300` | The routes reject longer sentences with 422. The parser cuts longer text. |
+| `limits.max_filters` | `10` | The most chips in one result. |
+
+## Next steps
+
+- See every key in [Configuration](/reference/configuration/).
+- Read [Troubleshooting](/troubleshooting/) for 401, 403, 404 and 429 responses.

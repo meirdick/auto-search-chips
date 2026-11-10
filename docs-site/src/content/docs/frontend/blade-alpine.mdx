@@ -1,0 +1,77 @@
+---
+title: Blade and Alpine
+description: The x-search-chips::search Blade component. Install, props, the search-chips:updated browser event.
+sidebar:
+  order: 2
+---
+
+The Blade component uses Alpine.js and the JSON routes. It needs no build step. The package serves a built script.
+
+## Install
+
+```bash
+composer require meirdick/auto-search-chips
+php artisan search-chips:install --stack=blade
+```
+
+Alpine.js must be on the page. The package does not include it.
+
+## Tailwind
+
+Tailwind 4 does not scan `vendor/`. The installer adds this line to `resources/css/app.css`:
+
+```css
+@source '../../vendor/meirdick/auto-search-chips/resources/views/**/*.blade.php';
+```
+
+If the file has no Tailwind entry, the installer prints the line. Add it yourself.
+
+## Use it
+
+```blade
+<x-search-chips::search for="posts" />
+```
+
+| Prop | Default | Meaning |
+| --- | --- | --- |
+| `for` | required | The registered alias. |
+| `placeholder` | `Search…` | The placeholder of the box. |
+| `debounce` | `250` | Milliseconds to wait after the last keystroke. |
+| `limit` | `25` | The number of rows to fetch when `withResults` is on. |
+| `withResults` | `false` | Also fetch result rows into the `results` Alpine property. |
+
+The component checks that the alias is registered and authorized when it renders. It loads `search-chips/search-chips.js` once, from the route named `search-chips.script`. That route needs `routes.enabled` to be `true`. The component calls the parse and apply routes, so the route middleware applies. See [Security](/guides/security/).
+
+## The event
+
+The component dispatches `search-chips:updated` on its element when the filters settle. The event bubbles. Listen on the element or on an ancestor. The `detail` has these keys.
+
+| Key | Type |
+| --- | --- |
+| `query` | The typed text. |
+| `chips` | The chips. |
+| `leftover` | The keyword text. |
+| `sort` | The sort, or `null`. |
+| `count` | The number of matching rows. |
+
+```blade
+<div id="posts-search">
+    <x-search-chips::search for="posts" />
+</div>
+
+<script>
+    document.getElementById('posts-search').addEventListener('search-chips:updated', (event) => {
+        console.log(event.detail.chips, event.detail.leftover);
+    });
+</script>
+```
+
+Use the event to reload your results.
+
+## No filter panel
+
+The Blade component has the search box and the chip row. It has no filter panel. The panel is not built for Blade. See [Limits](/limits/).
+
+## Build your own markup
+
+The script sets `window.searchChips` (the Alpine component) and `window.SearchChips.createSearchChips`. See [Headless core](/frontend/headless-core/).

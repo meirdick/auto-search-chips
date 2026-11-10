@@ -1,0 +1,11 @@
+{
+  // Static site. Assets only: no Worker script, no binding.
+  // Home page at /, user docs at /docs/ (staged by scripts/stage.mjs).
+  "name": "auto-search-chips",
+  "compatibility_date": "2026-11-10",
+  "workers_dev": true,
+  "assets": {
+    "directory": "./.deploy",
+    "not_found_handling": "404-page"
+  }
+}

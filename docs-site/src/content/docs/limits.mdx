@@ -1,0 +1,52 @@
+---
+title: Limits
+description: What is not tested yet and what is not built in version 0.1.
+---
+
+Version 0.1 is not released. This page lists what the maintainer has not tested and what the package does not do.
+
+## What is tested
+
+| Check | Result |
+| --- | --- |
+| Pest suite, SQLite | 128 tests pass |
+| PHPStan level 5 | No errors |
+| Headless core tests (Vitest) | 7 pass |
+| TypeScript type check | Passes |
+| Workbench demo, Livewire and Blade, in a browser | Chips, remove and results work |
+| Live Clairic, direct REST transport | Works |
+| Live Clairic through `meirdick/laravel-cf-workersai` 1.3.0 | Works |
+| Scout on the `collection`, `database`, Meilisearch 1.56 and Typesense 30.2 engines | Tests pass, in CI with real servers |
+| PHP 8.3, 8.4 and 8.5 with Laravel 12 and 13 | Tests pass in CI |
+| Real app (Inertia, React) | Works |
+
+## Not tested
+
+- **MySQL and PostgreSQL.** The tests run on SQLite only.
+- **Livewire 3.** The local runs use Livewire 4.
+- **Vue and Svelte components.** They are written. Nobody has compiled or run them.
+- **Algolia.** It has no local server. Chips stay in the database there. See [Laravel Scout](/guides/scout/).
+- **Scout 10, and the `database` engine on MySQL or PostgreSQL.** Only Scout 11 on SQLite ran.
+- **Soft-deleted Scout models with engine filters.**
+- **The chat engine (`ai`).** It is tested with the `laravel/ai` fake only. No live provider has run it.
+- **The Livewire installer in a real starter kit.** Only a unit test covers it.
+- **Accessibility.** The components have labels and a live region. No screen reader or axe run has happened.
+- **AI accuracy.** There is no accuracy test set for the AI engines.
+
+## Not built
+
+- The filter panel for Vue, Svelte and Blade.
+- OR groups.
+- A chip editing popover.
+- Facet counts.
+- A command that scores engines against a query set.
+
+## Language
+
+The rules engine words (`above`, `between`, `last month`, `latest` and so on) are English. The source has no other language. Treat the rules engine as English only.
+
+## Known friction
+
+- The result count of the JSON route ignores the filters that your page adds.
+- A page that has other filters must keep `q`, `chips` and `sort` in its links.
+- Relation values are unknown to the engines unless sampling is on.

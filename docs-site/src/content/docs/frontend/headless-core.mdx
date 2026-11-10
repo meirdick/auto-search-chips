@@ -1,0 +1,170 @@
+---
+title: Headless core
+description: The createSearchChips TypeScript API and the HTTP JSON contract of the parse and apply routes.
+sidebar:
+  order: 6
+---
+
+Every UI adapter is a thin view over one TypeScript file, `core.ts`. It has no dependencies and no framework. The installer copies it to `resources/js/components/search-chips/core.ts` for React, Vue and Svelte. Use it to build your own UI.
+
+## createSearchChips
+
+```ts
+import { createSearchChips } from './core';
+
+const search = createSearchChips({
+    for: 'posts',
+    onFilters: (filters) => console.log(filters.chips),
+});
+
+search.setQuery('videos by Ada above 10k views');
+```
+
+### Options
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `for` | required | The registered alias. |
+| `baseUrl` | `/search-chips` | The route prefix. Set it if you change `routes.prefix`. |
+| `debounce` | `250` | Milliseconds after the last keystroke. |
+| `withResults` | `false` | Ask the routes for result rows too. |
+| `limit` | `25` | The row limit when `withResults` is on. |
+| `initial` | none | State to start from, for example the `searchChips` page prop. |
+| `onChange` | none | Called on every state change. |
+| `onFilters` | none | Called when the filters settle: after a parse, a refine, a chip edit or a clear. |
+| `fetch` | global `fetch` | A custom fetch function. |
+| `headers` | none | A function that returns extra request headers. |
+
+### State
+
+`getState()` returns `query`, `chips`, `leftover`, `sort`, `count`, `results`, `engine`, `warnings` and `status`. The `status` is `idle`, `parsing`, `refining`, `applying` or `error`.
+
+`onFilters` receives `query`, `chips`, `leftover`, `sort` and `count`.
+
+### Methods
+
+| Method | Behavior |
+| --- | --- |
+| `getState()` | The current state. |
+| `subscribe(listener)` | Calls the listener on every change. Returns an unsubscribe function. |
+| `setQuery(query)` | Sets the text and starts a parse after the debounce. An empty text resets the state. |
+| `remove(id)` | Removes a chip. |
+| `accept(id)` | Turns a suggested chip into an applied chip. |
+| `setFilter(field, operator, value?)` | Replaces one slot of a field: lower bound, upper bound or exact value. |
+| `unsetFilter(field)` | Removes every chip of a field. |
+| `clearSort()` | Removes the sort. |
+| `clearKeywords()` | Removes the keyword text and keeps the chips. |
+| `clear()` | Resets the state. |
+| `destroy()` | Stops timers and requests. Removes the listeners. |
+
+The core also exports `controlsFor(chips, field)`, which returns `min`, `max`, `exact` and `bool` for a field, and `toParams(filters)`, which returns the request parameters `q`, `chips`, `leftover` and `sort` for a results page.
+
+### Request flow
+
+1. `setQuery` waits for the debounce.
+2. The core posts to the parse route with `refine: false`.
+3. If the response has `refinable: true`, the core posts again with `refine: true`. It drops that answer if you edited a chip or typed more text.
+4. A chip edit posts to the apply route.
+
+The core sends `credentials: 'same-origin'`, `Accept: application/json`, `Content-Type: application/json` and `X-Requested-With`. It adds a CSRF token. It reads `X-CSRF-TOKEN` from the `csrf-token` meta tag, or `X-XSRF-TOKEN` from the `XSRF-TOKEN` cookie. A failed request sets `status` to `error` and puts a message in `warnings`.
+
+## HTTP contract
+
+The package registers two `POST` routes under the prefix `search-chips`. The route names are `search-chips.parse` and `search-chips.apply`. The middleware is `routes.middleware`. See [Security](/guides/security/).
+
+### Parse
+
+`POST /search-chips/{alias}/parse` turns text into chips.
+
+| Field | Rule |
+| --- | --- |
+| `query` | Required string. At most `limits.max_query_length` characters. |
+| `refine` | Optional boolean. Default `true`. With `false`, only the rules engine runs. |
+| `with` | Optional. Only the value `results`. |
+| `limit` | Optional integer from 1 to 100. The default is 25. It applies with `with=results`. |
+
+```json
+{ "query": "videos by Ada above 10k views", "refine": false }
+```
+
+### Apply
+
+`POST /search-chips/{alias}/apply` validates an edited chip set. No engine runs.
+
+| Field | Rule |
+| --- | --- |
+| `chips` | Required array. At most `limits.max_filters` items. It can be empty. |
+| `chips.*.field` | Required string, at most 120 characters. |
+| `chips.*.operator` | Required string, at most 40 characters. |
+| `chips.*.value` | Optional. |
+| `chips.*.negated` | Optional boolean. |
+| `chips.*.suggested` | Optional boolean. |
+| `chips.*.id` | Optional string, at most 80 characters. |
+| `leftover` | Optional string. At most `limits.max_query_length` characters. |
+| `sort` | Optional object. |
+| `with`, `limit` | As for parse. |
+
+```json
+{
+  "chips": [{ "id": "rules:0", "field": "type", "operator": "equals", "value": "video" }],
+  "leftover": "rockets",
+  "sort": { "field": "published_at", "direction": "desc" }
+}
+```
+
+### Response
+
+Both routes return the same JSON.
+
+```json
+{
+  "filters": [
+    {
+      "id": "rules:0",
+      "field": "views",
+      "operator": "gt",
+      "value": 10000,
+      "negated": false,
+      "label": "Views greater than 10,000",
+      "source": "rules",
+      "confidence": 1,
+      "spans": [{ "start": 14, "end": 23 }, { "start": 24, "end": 29 }],
+      "unit": null,
+      "suggested": false
+    }
+  ],
+  "leftover": "",
+  "sort": null,
+  "engine": "rules",
+  "warnings": [],
+  "refinable": false,
+  "count": 1
+}
+```
+
+| Key | Meaning |
+| --- | --- |
+| `filters` | The chips. |
+| `leftover` | The keyword text. |
+| `sort` | `null`, or an object with `field`, `direction` (`asc` or `desc`) and `label`. |
+| `engine` | The engine that made the result: `rules`, `system-one`, `ai`, `user`, `none` for an empty query, or a custom engine name. |
+| `warnings` | Messages about chips that the package dropped. |
+| `refinable` | `true` when an AI engine can still refine this rules reading. |
+| `count` | The number of rows that match. |
+| `results` | Present with `with=results`. Rows from the `resource` option, or the `columns` option, or the key and the searchable fields. |
+
+Chips from `apply` are marked as explicit user chips and take the source `user` when they have none.
+
+### Status codes
+
+| Code | Cause |
+| --- | --- |
+| 401 | The `auth` middleware rejected the request. |
+| 403 | A Gate check failed. |
+| 404 | The alias is unknown or not exposed. |
+| 422 | The request failed validation, for example a `query` that is too long. |
+| 429 | The rate limit is exceeded. |
+
+## Next steps
+
+- See the fields of a chip in [Operators](/reference/operators/).

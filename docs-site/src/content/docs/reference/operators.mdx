@@ -1,0 +1,87 @@
+---
+title: Operators
+description: Field kinds, the operators each kind allows, and example sentences that the rules engine reads.
+sidebar:
+  order: 3
+---
+
+Each chip has a field, an operator and a value. The operators are a closed list. The normalizer drops a chip with an operator that its field kind does not allow.
+
+## Operators per kind
+
+| Kind | Operators |
+| --- | --- |
+| `text` | `equals`, `not_equals`, `contains`, `starts_with`, `ends_with`, `in`, `is_empty`, `not_empty` |
+| `number` | `equals`, `not_equals`, `gt`, `gte`, `lt`, `lte`, `between`, `is_empty`, `not_empty` |
+| `date` and `datetime` | `before`, `after`, `on`, `between`, `is_empty`, `not_empty` |
+| `boolean` | `is_true`, `is_false` |
+| `enum` | `equals`, `not_equals`, `in` |
+
+A negated `equals` on a text, number or enum field becomes `not_equals`.
+
+## Operator labels
+
+| Operator | Chip text |
+| --- | --- |
+| `equals` | is |
+| `not_equals` | is not |
+| `contains` | contains |
+| `starts_with` | starts with |
+| `ends_with` | ends with |
+| `in` | is one of |
+| `gt` | greater than |
+| `gte` | at least |
+| `lt` | less than |
+| `lte` | at most |
+| `between` | between |
+| `before` | before |
+| `after` | after |
+| `on` | on |
+| `is_true` | is yes |
+| `is_false` | is no |
+| `is_empty` | is empty |
+| `not_empty` | is not empty |
+
+## What the rules engine reads
+
+These sentences are in the test suite, most of them in `tests/Feature/RulesParserTest.php`. The schema is a `Post` model with `type`, `views`, `engagement_rate`, `is_featured`, `published_at` and `author`.
+
+| Sentence | Result |
+| --- | --- |
+| `videos`, `podcasts` | Enum value `video` or `podcast`. Singular or plural. |
+| `not articles`, `except podcasts` | The enum value, negated. |
+| `from Ada Lovelace`, `videos by Ada Lovelace above 10k views` | `author.name` contains the name. Trailing constraint words do not join the name. |
+| `above 10k views`, `over 1.5m views`, `more than 2,500 views` | `gt`. The suffixes `k`, `m` and `bn` work. |
+| `at least 500 views`, `views >= 2k` | `gte` |
+| `under 100 views`, `below 3 views` | `lt` |
+| `at most 1bn views` | `lte` |
+| `between 1k and 5k views`, `videos between 100 and 500 views` | `between` |
+| `views above 10k` | The field word can come before the comparator. |
+| `plays above 1k`, `engagement rate above 4%` | Field aliases and singular forms. |
+| `engagement above 8%` | `0.08`, when the field has `->unit('percent', scale: 0.01)`. |
+| `more then 100 view` | The typo `then` reads as `than`. |
+| `featured`, `not featured` | `is_true`, `is_false` |
+| `published yesterday` | `on` the default date field. |
+| `last 30 days` | `between`. |
+| `podcasts from last month` | `between` the first and last day of the previous calendar month. |
+| `videos before 2026` | `before` 2026-01-01. |
+| `videos after last week`, `videos since last month` | `after`. A direction word turns a period into one bound. |
+| `videos since monday about rockets` | `after`, and the keyword text is `rockets`. |
+| `videos since january`, `videos after march`, `videos before june 2025` | A month with no day is the whole month: `since` and `before` use its first day, `after` uses its last day. |
+| `latest videos` | Sort by the date field, descending. Not a chip. |
+| `most viewed videos` | Sort by `views`, descending. |
+| `type: video, article author: Ada views: 10k` | Explicit chips: `in`, `contains`, `equals`. |
+| `title: "launch day" above 1k views` | An explicit `contains` chip on the title. |
+| `videos about rockets` | A `type` chip. The keyword text is `rockets`. |
+| `hopper` | A bare name stays in the keyword text. The keyword search also looks in the related name column. |
+| `author: not Ada` | A negated author chip. |
+
+The default date field for a bare date word is `published_at`, then `created_at`, then `updated_at`, then the first date field.
+
+A comparison with no clear field, such as `above 5`, makes no chip. The words stay in the keyword text.
+
+The source has `oldest`, `top`, `best` and `highest` sort words too. No test covers them, so this page does not list them as proven.
+
+## Next steps
+
+- Define fields and aliases in [Define fields](/guides/define-fields/).

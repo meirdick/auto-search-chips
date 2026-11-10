@@ -1,0 +1,23 @@
+---
+title: Changelog
+description: Release notes for meirdick/auto-search-chips.
+---
+
+## 0.1.0 (unreleased)
+
+First public version.
+
+- Rules engine: enum values, relation names, number comparisons, dates, booleans, sort words, `field: value` syntax and quoted phrases.
+- AI engines: Cloudflare System One (Clairic) and chat models through `laravel/ai`. Custom engines with `SearchChips::extend()`.
+- Two-phase parse: rules chips at once, then the AI refine. Suggested chips for uncertain AI readings.
+- `searchChips(ChipSchema $chips)` model definition, zero-config discovery, and `search-chips:schema --stub`.
+- `SearchChips::for()`, the `autoSearch()` scope, `fromRequest()`, `toProps()` and `applyChips()`.
+- Components for Livewire, Blade and Alpine, React, Vue and Svelte, on one headless TypeScript core. The box holds the typed text. Chips, keyword text and sort show under it.
+- Filter panel for Livewire and React. It shows the chips as controls, in sync with the search box.
+- Value synonyms, keyword search over related names, and `onlyWhen()` row conditions.
+- Laravel Scout: keyword text goes through Scout for `Searchable` models.
+- Laravel Scout: chips go to the engine as filters when it can apply them all (`collection`, `database`, Meilisearch, Typesense). Pages and totals then come from the engine. Config `scout.filters`.
+- `search-chips:scout {alias}`: prints the index settings a model needs.
+- `meirdick/laravel-cf-workersai` 1.3 or later as the System One transport when installed.
+- JSON routes with auth, a rate limit, per-model authorization and a base query.
+- Schema cache, AI parse cache and `SearchChips::fake()`.

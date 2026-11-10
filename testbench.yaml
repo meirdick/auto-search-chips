@@ -1,0 +1,29 @@
+providers:
+  - Livewire\LivewireServiceProvider
+  - Laravel\Ai\AiServiceProvider
+  - Meirdick\WorkersAi\WorkersAiServiceProvider
+  - Meirdick\SearchChips\SearchChipsServiceProvider
+  - Workbench\App\Providers\WorkbenchServiceProvider
+
+env:
+  - APP_KEY=base64:c2VhcmNoLWNoaXBzLXdvcmtiZW5jaC1kZW1vLWtleSE=
+  - CACHE_STORE=file
+  - SESSION_DRIVER=file
+
+migrations:
+  - workbench/database/migrations
+
+seeders:
+  - Workbench\Database\Seeders\DatabaseSeeder
+
+workbench:
+  start: '/'
+  install: false
+  discovers:
+    web: true
+    views: true
+  build:
+    - create-sqlite-db
+    - migrate:refresh
+    - db:seed
+  assets: []

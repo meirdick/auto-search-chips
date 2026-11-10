@@ -1,0 +1,14 @@
+{
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "esbuild resources/js/alpine.ts --bundle --minify --format=iife --target=es2020 --outfile=dist/search-chips.js",
+        "test": "vitest run",
+        "typecheck": "tsc --noEmit"
+    },
+    "devDependencies": {
+        "esbuild": "^0.25.0",
+        "typescript": "^5.7.0",
+        "vitest": "^3.0.0"
+    }
+}

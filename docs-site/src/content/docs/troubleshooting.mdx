@@ -1,0 +1,87 @@
+---
+title: Troubleshooting
+description: Common failures, the messages that the package shows, and how to fix them.
+---
+
+## Messages
+
+| Message | Cause and fix |
+| --- | --- |
+| `Unknown model alias [x]. Register it with SearchChips::register() or in config('search-chips.models').` | The alias is not registered. Register it. |
+| `Unknown search alias [x].` (HTTP 404) | The route or component got an alias that is not registered, or is not exposed. Register it. Check that the `http` option is not `false`. |
+| `[x] is not an Eloquent model class.` | `register()` got a class that is not an Eloquent model. |
+| `Aliases must contain only lowercase letters, digits, dashes, or underscores.` | Change the alias. |
+| `Search chips engine [x] is not defined. Use rules, auto, system-one, ai, or one added with SearchChips::extend().` | `SEARCH_CHIPS_ENGINE` has an unknown name. Fix it, or add the engine with `extend()`. |
+| `Unknown stack [x]. Use one of: livewire, blade, react, vue, svelte.` | Fix the `--stack` value. |
+| `No Tailwind 4 entry at resources/css/app.css.` | The installer could not add the `@source` line. Add it to your Tailwind CSS file. See [Livewire](/frontend/livewire/#tailwind). |
+| `The schema cache is off. Set SEARCH_CHIPS_SCHEMA_CACHE=true to use it.` | `search-chips:cache` does nothing until you turn the cache on. |
+| `No models registered.` | `search-chips:schema` found no models. Register one. |
+| `Unknown alias [x].` | `search-chips:schema` got an alias that is not registered. |
+| `No chips extracted.` | `search-chips:parse` found no chip. The words are keyword text. |
+
+## Warnings
+
+A parse can return `warnings`. They explain what the package dropped.
+
+| Warning | Meaning |
+| --- | --- |
+| `Ignored a filter for unknown field [x].` | An engine or a chip named a field that is not in the schema. |
+| `Operator [x] is not valid for y.` | The operator does not fit the field kind. See [Operators](/reference/operators/). |
+| `Too many filters; kept the first N.` | The sentence made more chips than `limits.max_filters`. |
+| `Filter on x had no usable spans.` | An AI chip did not say which words it came from. The package dropped it. |
+| `Unknown value for x.` | The value is not one of the field values. |
+
+## The AI never runs
+
+The `engine` value of the result is `rules`, and you expect an AI engine. Check these causes.
+
+- **Test run.** `auto` uses rules only in tests. Set the engine by name.
+- **No credentials.** `system-one` needs `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`, or a configured `meirdick/laravel-cf-workersai` provider. See [AI engines](/guides/ai-engines/).
+- **Chat engine not set.** The `ai` engine needs `laravel/ai`, `SEARCH_CHIPS_CHAT_PROVIDER` and `SEARCH_CHIPS_CHAT_MODEL`.
+- **The request failed.** The built-in engines report the exception and keep the rules chips. Check your log. A custom engine must throw `EngineUnavailableException` to get the same result.
+- **The model uses `engine => rules`.** A per-model option overrides the global engine.
+
+Run `php artisan search-chips:parse posts your sentence` to see which engine answered.
+
+## A cached result is stale
+
+The package caches AI parses for `cache.ttl` seconds (300). Run `php artisan search-chips:clear`. In production with `cache.schema` on, run `search-chips:clear` and then `search-chips:cache` after you change a model schema.
+
+## HTTP responses
+
+| Code | Fix |
+| --- | --- |
+| 401 | The default middleware has `auth`. Sign in, or remove `auth` from `routes.middleware` for a public page. |
+| 403 | A Gate ability failed. Check `authorize` in the config and in the model options. |
+| 404 | The alias is not registered or not exposed. |
+| 422 | The `query` is empty or longer than `limits.max_query_length`. |
+| 429 | The rate limit is exceeded. Change `routes.rate_limit`. |
+
+## The Blade component has no styles or no script
+
+- Add the `@source` line to your Tailwind CSS. See [Blade and Alpine](/frontend/blade-alpine/#tailwind).
+- Load Alpine.js. The package does not include it.
+- Keep `routes.enabled` set to `true`. The script comes from a route.
+
+## The component shows a failure message
+
+The core shows `Search failed. Try again.` or `Could not update the results.` when a request fails. Open the browser network tab and read the status code. See the table above.
+
+## A chip is missing, or a word became keyword text
+
+- Check that the field is in the schema: `php artisan search-chips:schema posts`.
+- Add `aliases()` for the words your users type, and `synonyms()` for enum values.
+- Relation values such as category names are not known to the engines unless sampling is on. For example, `in diet` does not match the category `Diet & Nutrition`. See [Security](/guides/security/#value-sampling).
+- Clairic returns words from the sentence. Synonyms come from the field `synonyms()`, not from the model.
+
+## The count differs from the list
+
+The result count comes from the JSON route. It ignores filters that your page adds, such as category tabs. A page with other filters must keep `q`, `chips` and `sort` in its own links.
+
+## A discovered model exposes too much
+
+Discovery can expose a column that you did not intend. Declare `searchChips()` on the model. See [Define fields](/guides/define-fields/).
+
+## Next steps
+
+- Read [Limits](/limits/) for what is not tested.
