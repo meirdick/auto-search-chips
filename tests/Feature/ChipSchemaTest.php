@@ -113,3 +113,24 @@ it('keeps conditions and synonyms when a model has field overrides', function ()
         ->and($type->synonymFor('reel'))->toBe('video')
         ->and($type->synonyms)->toBe(SearchChips::for(DeclaredPost::class)->schema()->field('type')->synonyms + ['reel' => 'video']);
 });
+
+it('keeps the other bound when one bound of a range changes', function () {
+    $chips = [['id' => 'r:1', 'field' => 'views', 'operator' => 'between', 'value' => [1000, 50000]]];
+
+    expect(ChipSet::controls(ChipSet::set($chips, 'views', 'lte', 20000), 'views'))->toMatchArray(['min' => 1000, 'max' => 20000])
+        ->and(ChipSet::controls(ChipSet::set($chips, 'views', 'gte', 5000), 'views'))->toMatchArray(['min' => 5000, 'max' => 50000])
+        ->and(ChipSet::controls(ChipSet::set($chips, 'views', 'lte', ''), 'views'))->toMatchArray(['min' => 1000, 'max' => null])
+        ->and(ChipSet::set($chips, 'views', 'equals', 7))->toHaveCount(1);
+
+    $dates = ChipSet::set([['field' => 'published_at', 'operator' => 'between', 'value' => ['2026-01-01', '2026-03-31']]], 'published_at', 'before', '2026-02-01');
+
+    expect(array_column($dates, 'operator'))->toBe(['after', 'before']);
+});
+
+it('writes the label of a chip itself', function () {
+    $search = SearchChips::for(DeclaredPost::class)->applyChips([
+        ['field' => 'views', 'operator' => 'lte', 'value' => 20000, 'label' => 'Views between 1 – 2'],
+    ]);
+
+    expect($search->toProps()['chips'][0]['label'])->toBe('Views at most 20,000');
+});

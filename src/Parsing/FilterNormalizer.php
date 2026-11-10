@@ -417,10 +417,8 @@ final class FilterNormalizer
 
     private function labelFor(FieldSchema $field, array $raw): string
     {
-        if (is_string($raw['label'] ?? null) && $raw['label'] !== '') {
-            return $raw['label'];
-        }
-
+        // A label that comes with a chip is never used: a chip from the browser
+        // could carry text that does not match its operator and value.
         $label = $field->relation !== null && $field->label === null
             ? ucfirst(str_replace('_', ' ', $field->relation))
             : $field->displayLabel();

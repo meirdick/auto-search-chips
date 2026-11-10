@@ -94,6 +94,17 @@ describe('createSearchChips', () => {
         expect(calls[0].body.chips[0].suggested).toBe(false);
     });
 
+    it('keeps the other bound when one bound of a range changes', async () => {
+        const { calls, fetch } = server([{ filters: [], count: 4 }]);
+        const range = chip('views', { operator: 'between', value: [1000, 50000] });
+        const search = createSearchChips({ for: 'posts', fetch, initial: { chips: [range] } });
+
+        search.setFilter('views', 'lte', 20000);
+        await vi.runAllTimersAsync();
+
+        expect(calls[0].body.chips.map((c: Chip) => [c.operator, c.value])).toEqual([['gte', 1000], ['lte', 20000]]);
+    });
+
     it('clears without a request and reports the empty filter set', () => {
         const { calls, fetch } = server([]);
         const settled: unknown[] = [];

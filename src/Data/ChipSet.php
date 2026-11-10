@@ -22,6 +22,10 @@ final class ChipSet
     {
         $slot = self::SLOTS[$operator] ?? 'exact';
 
+        if ($slot !== 'exact') {
+            $chips = self::splitRange($chips, $field, in_array($operator, [Operator::AFTER, Operator::BEFORE], true));
+        }
+
         $chips = array_values(array_filter($chips, function ($chip) use ($field, $slot) {
             if (($chip['field'] ?? null) !== $field) {
                 return true;
@@ -48,6 +52,36 @@ final class ChipSet
         ];
 
         return $chips;
+    }
+
+    /**
+     * A range chip is two bounds. Split it, so a change to one bound keeps the other.
+     *
+     * @param  array<int, array<string, mixed>>  $chips
+     * @return array<int, array<string, mixed>>
+     */
+    private static function splitRange(array $chips, string $field, bool $date): array
+    {
+        $out = [];
+
+        foreach ($chips as $chip) {
+            $value = $chip['value'] ?? null;
+
+            if (($chip['field'] ?? null) !== $field || ($chip['operator'] ?? null) !== Operator::BETWEEN
+                || ! is_array($value) || count($value) < 2 || ($chip['negated'] ?? false)) {
+                $out[] = $chip;
+
+                continue;
+            }
+
+            $id = 'user:'.preg_replace('/[^A-Za-z0-9_.-]/', '', $field);
+            [$low, $high] = array_values($value);
+
+            $out[] = ['id' => $id.':min', 'field' => $field, 'operator' => $date ? Operator::AFTER : Operator::GTE, 'value' => $low, 'source' => 'user'];
+            $out[] = ['id' => $id.':max', 'field' => $field, 'operator' => $date ? Operator::BEFORE : Operator::LTE, 'value' => $high, 'source' => 'user'];
+        }
+
+        return $out;
     }
 
     /**

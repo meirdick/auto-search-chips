@@ -273,6 +273,25 @@ const slots: Partial<Record<string, 'min' | 'max'>> = { gt: 'min', gte: 'min', a
 function setChip(chips: Chip[], field: string, operator: string, value: unknown): Chip[] {
     const slot = slots[operator] ?? 'exact';
 
+    // A range chip is two bounds. Split it, so a change to one bound keeps the other.
+    if (slot !== 'exact') {
+        const date = operator === 'after' || operator === 'before';
+        const id = `user:${field.replace(/[^A-Za-z0-9_.-]/g, '')}`;
+
+        chips = chips.flatMap((chip) => {
+            if (chip.field !== field || chip.operator !== 'between' || !Array.isArray(chip.value) || chip.value.length < 2 || chip.negated) {
+                return [chip];
+            }
+
+            const bound = { ...chip, label: '', source: 'user', spans: undefined };
+
+            return [
+                { ...bound, id: `${id}:min`, operator: date ? 'after' : 'gte', value: chip.value[0] },
+                { ...bound, id: `${id}:max`, operator: date ? 'before' : 'lte', value: chip.value[1] },
+            ];
+        });
+    }
+
     const kept = chips.filter((chip) => {
         if (chip.field !== field) {
             return true;
