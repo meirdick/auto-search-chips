@@ -1,0 +1,17 @@
+{
+  "name": "demo",
+  "version": "1.0.0",
+  "description": "Live demo of auto-search-chips: the workbench app in a Cloudflare Container.",
+  "scripts": {
+    "deploy": "wrangler deploy --containers-rollout=immediate",
+    "types": "wrangler types",
+    "check": "tsc"
+  },
+  "keywords": [],
+  "type": "commonjs",
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "wrangler": "^4.160.0"
+  },
+  "private": true
+}

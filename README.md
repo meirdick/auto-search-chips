@@ -264,6 +264,8 @@ composer install && composer serve
 
 Open `http://127.0.0.1:8000`. For live AI parsing, start it with `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` set.
 
+A hosted copy of this demo app runs in a Cloudflare Container. Try it at [meirdick.com/lab/search-chips](https://meirdick.com/lab/search-chips/). Its code is in `demo/`.
+
 ## Not in 0.1
 
 Chip filters on Algolia (keyword text only), the filter panel for Vue, Svelte and Blade, OR groups, and an accuracy test set for the AI engines.

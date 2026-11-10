@@ -31,7 +31,7 @@ class WorkbenchServiceProvider extends ServiceProvider
             return;
         }
 
-        foreach (['account_id' => 'CLOUDFLARE_ACCOUNT_ID', 'api_token' => 'CLOUDFLARE_API_TOKEN'] as $key => $variable) {
+        foreach (['account_id' => 'CLOUDFLARE_ACCOUNT_ID', 'api_token' => 'CLOUDFLARE_API_TOKEN', 'url' => 'SEARCH_CHIPS_CF_URL', 'transport' => 'SEARCH_CHIPS_CF_TRANSPORT'] as $key => $variable) {
             if (is_string($value = getenv($variable)) && $value !== '') {
                 config()->set("search-chips.ai.cloudflare.{$key}", $value);
             }

@@ -1,0 +1,10 @@
+.git
+vendor
+node_modules
+docs-site
+site
+demo
+docs
+dist/.cache
+workbench/database/*.sqlite
+**/.wrangler

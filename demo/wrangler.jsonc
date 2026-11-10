@@ -1,0 +1,22 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	// The live demo: the workbench Laravel app in a Cloudflare Container.
+	// The Worker checks the request, limits the rate, and forwards it.
+	"name": "auto-search-chips-demo",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-11-10",
+	"workers_dev": true,
+	"observability": { "enabled": true },
+	"ai": { "binding": "AI" },
+	"version_metadata": { "binding": "VERSION" },
+	"ratelimits": [{ "name": "LIMITER", "namespace_id": "4301", "simple": { "limit": 20, "period": 60 } }],
+	"containers": [
+		{
+			"class_name": "Demo",
+			"scheduling_policy": "durable_object",
+			"images": { "base": { "dockerfile": "./Dockerfile", "build_context": ".." } }
+		}
+	],
+	"durable_objects": { "bindings": [{ "name": "DEMO", "class_name": "Demo" }] },
+	"exports": { "Demo": { "type": "durable-object", "storage": "sqlite" } }
+}
