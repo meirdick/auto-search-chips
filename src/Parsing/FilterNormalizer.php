@@ -170,7 +170,10 @@ final class FilterNormalizer
             'date', 'datetime' => $this->coerceDate($field, $operator, $value, $warnings),
             'boolean' => $this->coerceBoolean($value, $warnings, $field->name),
             'enum' => $this->coerceEnum($field, $operator, $value, $warnings),
-            default => $this->coerceText($operator, $value),
+            // A discovered column with a short value list: "is movies" must name one of the values.
+            default => $field->values !== null && $field->valueSource === 'sampled' && in_array($operator, [Operator::EQUALS, Operator::NOT_EQUALS, Operator::IN], true)
+                ? $this->coerceEnum($field, $operator, $value, $warnings)
+                : $this->coerceText($operator, $value),
         };
     }
 

@@ -6,6 +6,7 @@ use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 use Meirdick\SearchChips\Facades\SearchChips;
 use Workbench\App\Livewire\PostList;
+use Workbench\App\Models\AutoPost;
 use Workbench\App\Models\Post;
 
 class WorkbenchServiceProvider extends ServiceProvider
@@ -14,6 +15,8 @@ class WorkbenchServiceProvider extends ServiceProvider
     {
         // The demo has no login, so the routes drop the default `auth`.
         config()->set('search-chips.routes.middleware', ['web', 'throttle:search-chips']);
+        // The zero-config model needs the values of short text columns ("podcasts" is a type).
+        config()->set('search-chips.discovery.sample_values', true);
 
         // `composer serve` runs PHP's built-in server, which does not expose
         // shell variables to env(). Read the Cloudflare credentials directly,
@@ -41,6 +44,8 @@ class WorkbenchServiceProvider extends ServiceProvider
     public function boot(): void
     {
         SearchChips::register(Post::class, 'posts', ['columns' => ['id', 'title', 'type', 'views']]);
+        // The same table with no field list: the package discovers the fields.
+        SearchChips::register(AutoPost::class, 'auto-posts');
 
         Livewire::component('post-list', PostList::class);
     }

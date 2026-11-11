@@ -24,6 +24,9 @@ use ReflectionMethod;
  */
 class SchemaDiscovery
 {
+    /** A column name that says it holds a rate. */
+    private const RATIO_SUFFIX = '/_(rate|ratio|percent|percentage|pct)$/';
+
     /** Columns never offered to engines unless explicitly opted in. */
     public const EXCLUDE_PATTERN = '/password|passwd|token|secret|remember|api[_-]?key|[_-]hash|salt|private|internal/';
 
@@ -77,11 +80,23 @@ class SchemaDiscovery
                 continue; // arrays, json, and unknown casts are not filterable
             }
 
+            $enum = $this->enumValues($casts[$column] ?? null);
+            $sampled = $enum === null ? $this->sampledValues($model, $column, $kind) : null;
+            $ratio = $kind === 'number' && $column !== $keyName && $this->holdsRatio($model, $column);
+
             $fields[$column] = new FieldSchema(
                 name: $column,
                 kind: $kind,
-                values: ($enum = $this->enumValues($casts[$column] ?? null)) ?? $this->sampledValues($model, $column, $kind),
+                label: $this->discoveredLabel($column, $kind),
+                // "engagement above 5%" names the column engagement_rate.
+                aliases: $ratio ? [str_replace('_', ' ', (string) preg_replace(self::RATIO_SUFFIX, '', $column))] : [],
+                values: $enum ?? $sampled,
                 valueSource: $enum !== null ? 'enum' : 'sampled',
+                valueLabels: $sampled !== null ? array_combine($sampled, array_map(fn (string $value) => Str::headline($value), $sampled)) : [],
+                unit: $ratio ? 'percent' : null,
+                scale: $ratio ? 0.01 : null,
+                // No field list says what may be sorted, so a number column may: "most viewed".
+                orderable: $kind === 'number' && $column !== $keyName,
                 primary: $column === $keyName,
             );
         }
@@ -183,7 +198,8 @@ class SchemaDiscovery
         }
 
         try {
-            $values = $model->newQuery()->distinct()->limit(8)->pluck($column)
+            // One more than the limit: a column with more values is free text, not a value list.
+            $values = $model->newQuery()->distinct()->limit(9)->pluck($column)
                 ->filter(fn ($value) => is_scalar($value) && $value !== '')
                 ->map(fn ($value) => (string) $value)
                 ->values()
@@ -193,6 +209,37 @@ class SchemaDiscovery
         }
 
         return count($values) >= 2 && count($values) <= 8 ? $values : null;
+    }
+
+    /** "is_featured" reads as "Featured", "published_at" as "Published". */
+    private function discoveredLabel(string $column, string $kind): ?string
+    {
+        $short = match ($kind) {
+            'boolean' => preg_replace('/^(is|has)_/', '', $column),
+            'date', 'datetime' => preg_replace('/_(at|on)$/', '', $column),
+            default => $column,
+        };
+
+        return $short === $column || $short === '' || $short === null ? null : Str::headline($short);
+    }
+
+    /**
+     * A column such as engagement_rate that holds 0.08 for 8%. The name must
+     * say it is a rate, and no row may hold a value above 1.
+     */
+    private function holdsRatio(Model $model, string $column): bool
+    {
+        if (! preg_match(self::RATIO_SUFFIX, $column)) {
+            return false;
+        }
+
+        try {
+            $highest = $model->newQuery()->max($column);
+        } catch (\Throwable) {
+            return false;
+        }
+
+        return is_numeric($highest) && $highest > 0 && $highest <= 1;
     }
 
     private function enumValues(?string $cast): ?array

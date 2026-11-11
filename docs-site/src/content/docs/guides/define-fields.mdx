@@ -86,6 +86,15 @@ class Post extends Model {}
 
 Discovery can also sample values. See `discovery.sample_values` in [Configuration](/reference/configuration/) and [Security](/guides/security/).
 
+What discovery sets with no field list:
+
+- A flag column gets a short label: `is_featured` shows as "Featured". A date column does too: `published_at` shows as "Published".
+- A number column can be sorted, so "most viewed" works.
+- A column with a name that ends in `_rate`, `_ratio`, `_percent`, `_percentage` or `_pct`, and with no value above 1, is read as a percent. "Above 5%" becomes 0.05.
+- With `discovery.sample_values` on, a text column with 2 to 8 different values gets a value list. A chip for a value that is not in the list is dropped.
+
+Discovery cannot know other words for a value. To read "movies" as the value `video`, add a synonym in `searchChips()`.
+
 For a model that users search, declare the fields. Discovery can expose a column that you did not intend.
 
 ## Print a starting point

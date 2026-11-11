@@ -12,6 +12,7 @@ First public version.
 - Components: Livewire, Blade + Alpine, React, Vue, Svelte, on one headless TypeScript core. The box holds the typed text; chips, keyword text and sort show under it.
 - Filter panel (Livewire, React): the chips as controls, in sync with the search box.
 - Value synonyms, keyword search over related names, `onlyWhen()` row conditions.
+- Zero-config discovery: short labels for flag and date columns, sort on number columns, percent on rate columns, value lists only for columns with 2 to 8 values.
 - Laravel Scout: keyword text through Scout for `Searchable` models.
 - Laravel Scout: chips go to the engine as filters when it can apply them all (`collection`, `database`, Meilisearch, Typesense). Pages and totals then come from the engine, with no 1,000-key cap. Other chips keep the key path. Config `scout.filters`.
 - `search-chips:scout {alias}`: prints the Meilisearch index settings and Typesense collection schema a model needs.

@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Meirdick\SearchChips\Facades\SearchChips;
 use Meirdick\SearchChips\PendingSearch;
+use Workbench\App\Models\AutoPost;
 use Workbench\App\Models\Post;
 
 Route::view('/', 'demo', ['stack' => 'livewire']);
@@ -39,7 +40,7 @@ $answer = function (Closure $make) {
         'calls' => $calls,
         'sql' => $query->toRawSql(),
         'total' => Post::count(),
-        'rows' => $query->with('author')->limit(8)->get()->map(fn (Post $post) => [
+        'rows' => $query->with('author')->limit(8)->get()->map(fn (Post|AutoPost $post) => [
             'title' => $post->title,
             'type' => $post->type,
             'author' => $post->author?->name,
@@ -50,7 +51,9 @@ $answer = function (Closure $make) {
 };
 
 Route::get('/api/search', fn (Request $request) => $answer(
-    fn () => SearchChips::for('posts')->search(mb_substr(trim((string) $request->query('q', '')), 0, 200))
+    // model=auto: the same table through a model with no field list
+    fn () => SearchChips::for($request->query('model') === 'auto' ? 'auto-posts' : 'posts')
+        ->search(mb_substr(trim((string) $request->query('q', '')), 0, 200))
 ));
 
 // The same answer for a chip set the visitor edited. The package checks every chip again.
