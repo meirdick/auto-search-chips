@@ -154,6 +154,9 @@
     const mine = ++run;
     state = { query: example.query, chips: example.chips.map((c) => ({ ...c })), leftover: example.leftover, sort: example.sort };
     examples.querySelectorAll("button").forEach((b, i) => b.setAttribute("aria-pressed", String(i === index)));
+    // bring the chosen example into the one-line row; do not move the page
+    const chosen = examples.children[index];
+    if (chosen) examples.scrollLeft += chosen.getBoundingClientRect().left - examples.getBoundingClientRect().left - 16;
 
     if (!animate || still) return render(true);
 

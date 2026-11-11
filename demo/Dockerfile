@@ -19,6 +19,7 @@ ENV SEARCH_CHIPS_ENGINE=auto \
     SEARCH_CHIPS_CF_URL=http://clairic.gateway/run \
     CLOUDFLARE_ACCOUNT_ID=gateway \
     CLOUDFLARE_API_TOKEN=gateway \
+    SEARCH_CHIPS_CACHE=false \
     PHP_CLI_SERVER_WORKERS=4
 
 EXPOSE 8080
