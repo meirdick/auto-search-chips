@@ -7,8 +7,14 @@ COPY --from=composer /usr/bin/composer /usr/bin/composer
 RUN apk add --no-cache git unzip
 
 WORKDIR /app
+# The dependencies go in their own layer: a code change does not upload them again.
+COPY composer.json ./
+RUN composer install --no-interaction --prefer-dist --no-progress --no-scripts --no-autoloader \
+    && composer clear-cache
+
 COPY . .
-RUN composer install --no-interaction --prefer-dist --no-progress \
+RUN composer dump-autoload --optimize \
+    && vendor/bin/testbench package:discover \
     && vendor/bin/testbench workbench:create-sqlite-db \
     && vendor/bin/testbench migrate:fresh --force
 
