@@ -163,7 +163,7 @@ final class SystemOneParser implements Parser
     {
         $fields = [];
 
-        foreach ($schema->fields as $field) {
+        foreach ($schema->engineFields() as $field) {
             if (count($fields) >= (int) ($this->config['max_fields'] ?? 24)) {
                 break;
             }
@@ -264,6 +264,12 @@ final class SystemOneParser implements Parser
                 continue;
             }
 
+            // "einstein" alone can be an author or a topic. With no cue word,
+            // the chip stays only when such a related row exists.
+            if (! $this->namesARelatedRow($field, $value, $before, $schema)) {
+                continue;
+            }
+
             $filters[] = [
                 'field' => $field->name,
                 'operator' => $operator,
@@ -287,6 +293,28 @@ final class SystemOneParser implements Parser
                 ? array_values(array_filter($keywords, 'is_string'))
                 : null,
         );
+    }
+
+    private function namesARelatedRow(FieldSchema $field, mixed $value, string $before, ModelSchema $schema): bool
+    {
+        $related = $schema->relations[$field->relation ?? '']->relatedModel ?? null;
+
+        if ($related === null || $field->relationColumn === null || $field->values !== null
+            || ! is_string($value) || ! ($this->config['check_names'] ?? true)) {
+            return true;
+        }
+
+        $cue = mb_strtolower((string) preg_replace('/^.*\s/u', '', trim($before)));
+
+        if (in_array($cue, ['by', 'from', 'with', 'of', 'for', 'in', 'at', ...$field->matchTokens()], true)) {
+            return true; // "by hopper" states the field
+        }
+
+        try {
+            return $related::query()->where($field->relationColumn, 'like', '%'.addcslashes($value, '%_\\').'%')->exists();
+        } catch (Throwable) {
+            return true;
+        }
     }
 
     /** @return array{0: ?string, 1: mixed, 2: bool} operator, value, negated */

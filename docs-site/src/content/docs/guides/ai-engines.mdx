@@ -55,11 +55,22 @@ These keys are under `ai.cloudflare`. They have no env variable.
 | `suggest_below` | `0.85` | An answer below this value becomes a suggested chip. |
 | `guess_p_null` | `0.65` | A confident guess with `p_null` at or below this value also becomes a suggested chip. |
 | `max_fields` | `24` | The most fields the package sends. |
+| `check_names` | `true` | Keep a name with no cue word as a relation chip only when a related row has that name. |
 | `match_values` | `true` | Ask a Clef decision model which allowed value an unknown word means. |
 | `match_model` | `@cf/cloudflare/clef-flash` | The decision model for that question. |
 | `match_url` | `null` | Full endpoint for that call. Set it when `url` is set. |
 | `match_threshold` | `0.7` | The chosen value needs this probability. |
 | `timeout` | `8` | Seconds before the request stops. |
+
+### A name with no cue word
+
+"einstein" alone can be an author or a topic. "By einstein" states the author.
+
+- With a cue word (`by`, `from`, `with`, `of`, `for`, `in`, `at`, or the field name), the relation chip stays.
+- With no cue word, the package looks for a related row with that name. This is one `exists` query.
+- If no row exists, there is no chip and the word stays in the keyword text.
+
+Set `ai.cloudflare.check_names` to `false` to stop this query.
 
 ### Other words for a value
 

@@ -226,6 +226,7 @@ it('keeps an AI chip when the browser sends the chip set back', function () {
 it('keeps the words of a suggested chip in the keyword search', function () {
     DeclaredPost::create(['type' => 'video', 'title' => 'Pain diary', 'published_at' => now()]);
     DeclaredPost::create(['type' => 'video', 'title' => 'Garden', 'published_at' => now()]);
+    Author::create(['name' => 'Thomas Paine']); // the guess names a real author, so the chip is offered
 
     clairic(['author.name' => ['type' => 'text', 'value' => null, 'guess' => 'pain', 'confidence' => 0.95, 'p_null' => 0.6, 'span' => [0, 4]]]);
 

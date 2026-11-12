@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Http;
 use Meirdick\SearchChips\Facades\SearchChips;
 use Meirdick\SearchChips\Parsing\RulesParser;
 use Meirdick\SearchChips\Parsing\SystemOneParser;
+use Meirdick\SearchChips\Tests\Fixtures\Author;
 use Meirdick\SearchChips\Tests\Fixtures\Post;
 use Meirdick\SearchChips\Tests\Support\RecordingExtractor;
 
@@ -122,3 +123,18 @@ it('keeps the Clairic reading when the decision call fails', function () {
     expect($result->engine)->toBe('system-one')
         ->and($result->filters->pluck('field')->all())->toBe(['views']);
 });
+
+it('keeps a bare name as an author chip only when that author exists', function (string $query, string $name, bool $kept) {
+    Author::create(['name' => 'Grace Hopper']);
+    Http::fake(['*/ai/run/*' => Http::response(['result' => ['answers' => [
+        'author.name' => ['type' => 'text', 'value' => $name, 'confidence' => 0.99, 'p_null' => 0.05, 'span' => [strpos($query, $name), strpos($query, $name) + strlen($name)]],
+    ]]])]);
+
+    $result = SearchChips::for('posts')->parse($query);
+
+    expect($result->filters->firstWhere('field', 'author.name') !== null)->toBe($kept);
+})->with([
+    'an author' => ['hopper', 'hopper', true],
+    'not an author' => ['einstein', 'einstein', false],
+    'cue word, no such author' => ['videos by einstein', 'einstein', true],
+]);

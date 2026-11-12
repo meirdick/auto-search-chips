@@ -71,3 +71,16 @@ it('drops a value that is not in the value list', function () {
 
     expect($result->filters()->pluck('value')->all())->toBe(['video']);
 });
+
+it('searches a bare name in the related names too', function () {
+    $schema = SearchChips::for('plain')->schema();
+
+    expect($schema->searchable)->toContain('author.name');
+});
+
+it('does not ask an AI engine about the key or the timestamps', function () {
+    $asked = array_keys(SearchChips::for('plain')->schema()->engineFields());
+
+    expect($asked)->toContain('published_at', 'views', 'type')
+        ->and($asked)->not->toContain('id', 'created_at', 'updated_at');
+});

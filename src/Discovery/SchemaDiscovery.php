@@ -513,6 +513,13 @@ class SchemaDiscovery
             }
         }
 
+        // A bare name ("hopper") can be a title word or a related name, so
+        // the keyword search reads both. Three relations at most.
+        if ($searchable !== []) {
+            $names = array_filter($fields, fn (FieldSchema $f) => $f->kind === 'text' && $f->relation !== null && $f->relationColumn !== null);
+            $searchable = [...$searchable, ...array_slice(array_keys($names), 0, 3)];
+        }
+
         return $searchable;
     }
 

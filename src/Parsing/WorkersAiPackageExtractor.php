@@ -73,7 +73,7 @@ final class WorkersAiPackageExtractor implements WorkersAiExtractor
     {
         $fields = [];
 
-        foreach ($schema->fields as $field) {
+        foreach ($schema->engineFields() as $field) {
             if (count($fields) >= $max) {
                 break;
             }

@@ -39,6 +39,9 @@ return [
             // A word that names no allowed value of a field ("movies" for the
             // value "video") goes to a Clef decision model, which picks the
             // value it means or none. One more call, only for such a word.
+            // A name with no cue word ("einstein", not "by einstein") becomes a
+            // relation chip only when a related row with that name exists.
+            'check_names' => true,
             'match_values' => env('SEARCH_CHIPS_MATCH_VALUES', true),
             'match_model' => env('SEARCH_CHIPS_MATCH_MODEL', '@cf/cloudflare/clef-flash'),
             // Full endpoint override for that call. Needed when `url` is set.

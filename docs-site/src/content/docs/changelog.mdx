@@ -15,6 +15,7 @@ First public version.
 - Components for Livewire, Blade and Alpine, React, Vue and Svelte, on one headless TypeScript core. The box holds the typed text. Chips, keyword text and sort show under it.
 - Filter panel for Livewire and React. It shows the chips as controls, in sync with the search box.
 - Value synonyms, keyword search over related names, and `onlyWhen()` row conditions.
+- Name check: with Clairic, a bare name is an author chip only when that author exists. Zero-config keyword search reads related names. The key and the timestamps are not sent to an AI engine.
 - Value matching: with Clairic, a Clef decision model maps a word such as "movies" to the allowed value `video`.
 - Laravel Scout: keyword text goes through Scout for `Searchable` models.
 - Laravel Scout: chips go to the engine as filters when it can apply them all (`collection`, `database`, Meilisearch, Typesense). Pages and totals then come from the engine. Config `scout.filters`.

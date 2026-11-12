@@ -25,6 +25,24 @@ final class ModelSchema
         return $this->fields[$name] ?? null;
     }
 
+    /**
+     * The fields an AI engine is asked about. Two kinds of discovered field
+     * are left out, because nobody states them in a sentence and a model
+     * can put a number or a date on them by mistake: the primary key, and
+     * the created_at and updated_at columns when the model has another
+     * date. A declared field always stays. The rules still read all of them.
+     *
+     * @return array<string, FieldSchema>
+     */
+    public function engineFields(): array
+    {
+        $stamps = ['created_at', 'updated_at'];
+        $otherDate = array_diff(array_keys($this->dateFields()), $stamps) !== [];
+
+        return array_filter($this->fields, fn (FieldSchema $field) => ! $field->primary
+            && ! ($otherDate && $field->valueSource !== 'declared' && in_array($field->name, $stamps, true)));
+    }
+
     /** @return array<string, FieldSchema> */
     public function fieldsOfKind(string ...$kinds): array
     {

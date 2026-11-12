@@ -32,6 +32,7 @@ php artisan vendor:publish --tag=search-chips-config
 | `ai.cloudflare.suggest_below` | none | `0.85` | An answer below this is a suggested chip. |
 | `ai.cloudflare.guess_p_null` | none | `0.65` | A confident guess with `p_null` at or below this is a suggested chip. |
 | `ai.cloudflare.max_fields` | none | `24` | The most fields sent. |
+| `ai.cloudflare.check_names` | none | `true` | A name with no cue word is a relation chip only when a related row has that name. |
 | `ai.cloudflare.match_values` | `SEARCH_CHIPS_MATCH_VALUES` | `true` | Ask Clef which allowed value an unknown word means. |
 | `ai.cloudflare.match_model` | `SEARCH_CHIPS_MATCH_MODEL` | `@cf/cloudflare/clef-flash` | The decision model. |
 | `ai.cloudflare.match_url` | `SEARCH_CHIPS_MATCH_URL` | `null` | Full endpoint for the Clef call. Needed when `ai.cloudflare.url` is set. |
