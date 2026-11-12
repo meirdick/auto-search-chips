@@ -29,6 +29,9 @@ final class SystemOneParser implements Parser
     /** Words before a span that can carry its comparator ("no more than 10k"). */
     private const CONTEXT_WORDS = 4;
 
+    /** A guessed word with p_null above this is a topic word ("rockets"), not a value. */
+    private const VALUE_WORD_P_NULL = 0.9;
+
     /**
      * Words next to a value that belong to the filter, not to the keyword
      * search: "above 10k views" must leave no leftover.
@@ -78,7 +81,46 @@ final class SystemOneParser implements Parser
             throw new EngineUnavailableException('Clairic returned no answers.');
         }
 
-        return $this->assemble($answers, $query, $schema);
+        return $this->assemble($this->matchValues($answers, $query, $schema), $query, $schema);
+    }
+
+    /**
+     * Clairic copies words from the query, so "movies" arrives as the type
+     * and names no allowed value. Ask the decision model which value each
+     * such word means. A word it cannot place stays as it was.
+     */
+    private function matchValues(array $answers, string $query, ModelSchema $schema): array
+    {
+        $words = [];
+
+        foreach ($answers as $name => $answer) {
+            if (! is_array($answer) || ! is_string($name) || $name === self::KEYWORDS) {
+                continue;
+            }
+
+            $field = $schema->field($name) ?? $schema->resolveFieldToken($name);
+            $word = $answer['value'] ?? $answer['guess'] ?? null;
+
+            if ($field === null || $field->values === null || ! is_string($word) || trim($word) === ''
+                || ! (isset($answer['span']) || isset($answer['spans']))
+                || (float) ($answer['confidence'] ?? 0) < (float) ($this->config['confidence_threshold'] ?? 0.6)
+                || (($answer['value'] ?? null) === null && (float) ($answer['p_null'] ?? 1) > self::VALUE_WORD_P_NULL)
+                || $field->resolveValue($word) !== null) {
+                continue;
+            }
+
+            $words[$name] = ['field' => $field, 'word' => trim($word)];
+        }
+
+        if ($words === []) {
+            return $answers;
+        }
+
+        foreach ((new ValueMatcher($this->config))->match($query, $words) as $name => $match) {
+            $answers[$name] = [...$answers[$name], 'value' => $match['value'], 'confidence' => $match['confidence'], 'p_null' => 0.0];
+        }
+
+        return $answers;
     }
 
     private function extractor(): WorkersAiExtractor

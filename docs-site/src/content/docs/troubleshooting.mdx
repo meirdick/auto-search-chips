@@ -72,7 +72,7 @@ The core shows `Search failed. Try again.` or `Could not update the results.` wh
 - Check that the field is in the schema: `php artisan search-chips:schema posts`.
 - Add `aliases()` for the words your users type, and `synonyms()` for enum values.
 - Relation values such as category names are not known to the engines unless sampling is on. For example, `in diet` does not match the category `Diet & Nutrition`. See [Security](/guides/security/#value-sampling).
-- Clairic returns words from the sentence. Synonyms come from the field `synonyms()`, not from the model.
+- Clairic returns words from the sentence. A Clef decision model maps a common word to an allowed value. A word that is specific to your app needs a field `synonyms()` entry.
 
 ## The count differs from the list
 

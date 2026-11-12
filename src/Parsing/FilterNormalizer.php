@@ -4,7 +4,6 @@ namespace Meirdick\SearchChips\Parsing;
 
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 use Meirdick\SearchChips\Data\FieldSchema;
 use Meirdick\SearchChips\Data\Filter;
 use Meirdick\SearchChips\Data\FilterCollection;
@@ -335,45 +334,7 @@ final class FilterNormalizer
 
     private function resolveEnumValue(FieldSchema $field, mixed $item): mixed
     {
-        if ($field->values === null) {
-            return is_scalar($item) ? $item : null;
-        }
-
-        foreach ($field->values as $value) {
-            if ($item === $value) {
-                return $value;
-            }
-
-            if (is_scalar($item) && is_scalar($value) && strtolower((string) $value) === strtolower(trim((string) $item))) {
-                return $value;
-            }
-        }
-
-        // "videos" is the plural of the value "video"; accept both directions.
-        foreach ($field->values as $value) {
-            if (! is_scalar($item) || ! is_scalar($value)) {
-                continue;
-            }
-
-            $itemLower = strtolower(trim((string) $item));
-            $valueLower = strtolower((string) $value);
-
-            if (Str::plural($valueLower) === $itemLower || Str::singular($itemLower) === $valueLower) {
-                return $value;
-            }
-        }
-
-        foreach ($field->valueLabels as $value => $label) {
-            if (is_scalar($item) && strcasecmp(trim((string) $item), $label) === 0) {
-                return $value;
-            }
-        }
-
-        if (is_scalar($item) && ($synonym = $field->synonymFor((string) $item)) !== null) {
-            return $synonym;
-        }
-
-        return null;
+        return $field->resolveValue($item);
     }
 
     private function coerceText(string $operator, mixed $value): mixed

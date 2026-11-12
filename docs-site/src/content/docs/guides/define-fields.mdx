@@ -93,7 +93,7 @@ What discovery sets with no field list:
 - A column with a name that ends in `_rate`, `_ratio`, `_percent`, `_percentage` or `_pct`, and with no value above 1, is read as a percent. "Above 5%" becomes 0.05.
 - With `discovery.sample_values` on, a text column with 2 to 8 different values gets a value list. A chip for a value that is not in the list is dropped.
 
-Discovery cannot know other words for a value. To read "movies" as the value `video`, add a synonym in `searchChips()`.
+Discovery cannot know other words for a value. With the `system-one` engine, a Clef decision model maps a common word such as "movies" to the value `video`. See [Other words for a value](/guides/ai-engines/#other-words-for-a-value). For a word that is specific to your app, add a synonym in `searchChips()`.
 
 For a model that users search, declare the fields. Discovery can expose a column that you did not intend.
 

@@ -53,7 +53,7 @@ final class WorkersAiPackageExtractor implements WorkersAiExtractor
     }
 
     /** The name of the first laravel/ai provider that uses this package's driver. */
-    private function provider(): ?string
+    public function provider(): ?string
     {
         if (filled($name = config('search-chips.ai.cloudflare.provider'))) {
             return (string) $name;

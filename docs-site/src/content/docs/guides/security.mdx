@@ -85,7 +85,7 @@ No row data goes to an AI engine unless sampling is on. These items do go:
 
 | Engine | Sent |
 | --- | --- |
-| `system-one` | The sentence, today's date, and for each field (at most `max_fields`) a type and a question that names the field label. For an enum or a field with values, the question lists the allowed values and the synonym words. It also asks for the topic words. |
+| `system-one` | The sentence, today's date, and for each field (at most `max_fields`) a type and a question that names the field label. For an enum or a field with values, the question lists the allowed values and the synonym words. It also asks for the topic words. For a word that names no allowed value, a second request to Clef sends the sentence, that word, the field label and the allowed values. |
 | `ai` | The sentence, today's date, and a schema: field names, kinds, labels, aliases, values, units, operators, and the sortable fields. |
 
 The sentence is what the user typed. It can hold personal data.

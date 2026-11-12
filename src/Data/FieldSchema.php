@@ -32,6 +32,50 @@ final class FieldSchema
         public readonly array $synonyms = [],
     ) {}
 
+    /** The allowed value a word names: exact, plural, label or synonym. Null when it names none. */
+    public function resolveValue(mixed $item): mixed
+    {
+        if ($this->values === null) {
+            return is_scalar($item) ? $item : null;
+        }
+
+        foreach ($this->values as $value) {
+            if ($item === $value) {
+                return $value;
+            }
+
+            if (is_scalar($item) && is_scalar($value) && strtolower((string) $value) === strtolower(trim((string) $item))) {
+                return $value;
+            }
+        }
+
+        // "videos" is the plural of the value "video"; accept both directions.
+        foreach ($this->values as $value) {
+            if (! is_scalar($item) || ! is_scalar($value)) {
+                continue;
+            }
+
+            $itemLower = strtolower(trim((string) $item));
+            $valueLower = strtolower((string) $value);
+
+            if (Str::plural($valueLower) === $itemLower || Str::singular($itemLower) === $valueLower) {
+                return $value;
+            }
+        }
+
+        foreach ($this->valueLabels as $value => $label) {
+            if (is_scalar($item) && strcasecmp(trim((string) $item), $label) === 0) {
+                return $value;
+            }
+        }
+
+        if (is_scalar($item) && ($synonym = $this->synonymFor((string) $item)) !== null) {
+            return $synonym;
+        }
+
+        return null;
+    }
+
     /** The value a word stands for, by synonym, in singular or plural. */
     public function synonymFor(string $word): mixed
     {

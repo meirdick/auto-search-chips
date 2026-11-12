@@ -36,6 +36,14 @@ return [
             'suggest_below' => 0.85,        // an answer below this is a suggested chip: shown, not applied
             'guess_p_null' => 0.65,         // a confident guess with p_null at or below this is also a suggested chip
             'max_fields' => 24,
+            // A word that names no allowed value of a field ("movies" for the
+            // value "video") goes to a Clef decision model, which picks the
+            // value it means or none. One more call, only for such a word.
+            'match_values' => env('SEARCH_CHIPS_MATCH_VALUES', true),
+            'match_model' => env('SEARCH_CHIPS_MATCH_MODEL', '@cf/cloudflare/clef-flash'),
+            // Full endpoint override for that call. Needed when `url` is set.
+            'match_url' => env('SEARCH_CHIPS_MATCH_URL'),
+            'match_threshold' => 0.7,       // the chosen value needs this probability
             'timeout' => 8,
         ],
         'chat' => [
